@@ -1,0 +1,284 @@
+# ============================================================================
+# Cidade Gaúcha — PR  ·  município piloto
+#
+# CAMPO `verificacao` — leia antes de confiar em qualquer URL daqui:
+#
+#   verificada   = alguém abriu a URL e recebeu HTTP 200 com o conteúdo esperado.
+#                  Registre data e quem verificou.
+#   indexada     = a URL aparece no índice de buscador com título coerente.
+#                  Prova que existiu; NÃO prova que responde hoje.
+#   inferida     = deduzida do padrão do fornecedor. Pode não existir.
+#   nao_confirmada = procurou-se e não se achou.
+#
+# Este campo existe porque o projeto inteiro se apoia na diferença entre
+# "não encontrei" e "não existe" (AGENTS.md, regra R3). Começar mentindo sobre
+# a própria configuração seria um jeito rápido de corromper tudo.
+#
+# ANTES DE ATIVAR QUALQUER COLETOR: rode `python scripts/smoke_fontes.py`
+# num ambiente com saída de rede liberada e atualize os status.
+# ============================================================================
+
+municipio:
+  nome: Cidade Gaúcha
+  uf: PR
+  codigo_ibge: "4105607"
+  comarca: nao_confirmada      # confirmar: comarca própria ou vinculada a Umuarama/Tapejara
+  populacao: null              # preencher do IBGE
+  populacao_ano: null
+
+# ---------------------------------------------------------------------------
+# ÓRGÃOS — cada um licita com CNPJ próprio.
+#
+# Isto não é burocracia: o fracionamento de despesa costuma se esconder na
+# divisão entre Prefeitura e fundos. Quem consolida só o CNPJ da Prefeitura não
+# enxerga três compras de R$ 40 mil do mesmo objeto feitas por três entes no
+# mesmo mês. Descobrir os CNPJs dos fundos é tarefa prioritária.
+# ---------------------------------------------------------------------------
+orgaos:
+  - nome: Prefeitura Municipal de Cidade Gaúcha
+    tipo: prefeitura
+    cnpj: "75.377.200/0001-67"
+    verificacao: indexada
+    fontes_do_cnpj:
+      - portaldatransparencia.gov.br/pessoa-juridica/75377200000167
+      - cnes2.datasus.gov.br (consulta por CNPJ)
+      - pncp.gov.br/pncp-api/v1/orgaos/75377200000167/... (órgão cadastrado)
+
+  - nome: Câmara Municipal de Cidade Gaúcha
+    tipo: camara
+    cnpj: "01.201.556/0001-09"
+    verificacao: indexada
+    observacao: >-
+      Abertura 16/05/1996, CNAE 8411-6/00. Ainda não confirmado se publica no
+      PNCP com CNPJ próprio nem se tem portal de transparência separado.
+
+  # A CONFIRMAR — quase certamente existem, e são justamente onde o radar
+  # precisa olhar. Descobrir via SIM-AM/TCE-PR, que lista todas as entidades.
+  - nome: Fundo Municipal de Saúde
+    tipo: fundo
+    cnpj: null
+    verificacao: nao_confirmada
+  - nome: Fundo Municipal de Assistência Social
+    tipo: fundo
+    cnpj: null
+    verificacao: nao_confirmada
+  - nome: Fundo Municipal de Educação / FUNDEB
+    tipo: fundo
+    cnpj: null
+    verificacao: nao_confirmada
+
+# ---------------------------------------------------------------------------
+# FONTES — ordenadas por prioridade de implementação.
+# ---------------------------------------------------------------------------
+fontes:
+
+  # === PRIORIDADE 1 =======================================================
+  - chave: diario_oficial_proprio
+    nome: Diário Oficial Eletrônico de Cidade Gaúcha
+    prioridade: 1
+    url_base: https://diario.cidadegaucha.pr.gov.br/
+    tipo: pdf
+    coletor: radar.coleta.diario_cidade_gaucha
+    verificacao: indexada
+    periodicidade_min: 360
+    porque_importa: >-
+      Maior densidade de informação de todo o levantamento. Publica atos do
+      Executivo E do Legislativo — é o diário conjunto do município. Avisos de
+      licitação, homologações, extratos de contrato, aditivos, nomeações e
+      portarias passam todos por aqui. Um único coletor cobre metade do radar.
+    padroes:
+      edicao_pdf_assinado: https://diario.cidadegaucha.pr.gov.br/storage/diarios/{ano}/{mes:02d}/diario{edicao}-signed.pdf
+      indice: https://diario.cidadegaucha.pr.gov.br/diariooficial
+      materia_html: https://diario.cidadegaucha.pr.gov.br/diariooficial/materias/{id12}
+      edicao_download: https://diario.cidadegaucha.pr.gov.br/download/diariooficial/edition/{id12}
+    faixa_observada:
+      edicao_min: 2575   # 2024
+      edicao_max: 3100   # jun/2026 — reprojetar para a data corrente
+    cadencia: aproximadamente 1 edição por dia útil
+    hipotese_id12: >-
+      IDs de 12 dígitos parecem seguir <edicao:4><ano:4><serial:4>
+      (ex.: 2670|2024|9017, 2970|2026|9334). Consistente com 8 exemplos;
+      NÃO VALIDADO. Não enumere por aqui até confirmar — prefira o índice HTML.
+    estrategia: >-
+      Varrer o número de edição sequencialmente pela URL de PDF assinado, que é
+      o padrão mais previsível. Descobrir ano/mês de cada edição pelo índice.
+      Lacuna de edição é sinal a investigar, não erro a ignorar.
+
+  - chave: pncp
+    nome: Portal Nacional de Contratações Públicas
+    prioridade: 1
+    url_base: https://pncp.gov.br/api/consulta/v1
+    tipo: api
+    coletor: radar.coleta.pncp
+    verificacao: indexada
+    periodicidade_min: 720
+    porque_importa: >-
+      Única API REST pública, aberta e documentada com dados do município.
+      Sob a Lei 14.133 a publicação no PNCP é condição de eficácia do ato —
+      o que torna a AUSÊNCIA de publicação um achado por si só.
+    autenticacao: nenhuma (consulta); manutenção exige token
+    openapi: https://pncp.gov.br/api/consulta/v3/api-docs
+    swagger_ui: https://pncp.gov.br/api/consulta/swagger-ui/index.html
+    filtros_disponiveis: [dataInicial, dataFinal, modalidade, codigoMunicipioIbge, cnpjOrgao, unidadeAdministrativa]
+    aviso: >-
+      Os NOMES EXATOS dos parâmetros não foram confirmados. Baixe o api-docs e
+      gere o cliente a partir do spec — não chute nome de parâmetro.
+    padrao_arquivos: /pncp-api/v1/orgaos/{cnpj}/compras/{ano}/{sequencial}/arquivos/{n}
+
+  # === PRIORIDADE 2 =======================================================
+  - chave: tce_pr_pit_simam
+    nome: TCE-PR / PIT — download de dados do SIM-AM
+    prioridade: 2
+    url_base: https://pit.tce.pr.gov.br/Dados/DadosConsulta/Consulta
+    tipo: planilha
+    coletor: radar.coleta.tce_pr_pit
+    verificacao: indexada
+    periodicidade_min: 10080     # regenerado ~1x/semana pelo TCE
+    porque_importa: >-
+      Dados ESTRUTURADOS de licitações, contratos e despesas de TODAS as
+      entidades do município — Prefeitura, Câmara e fundos — vindos das remessas
+      obrigatórias do SIM-AM. Inclui arquivo de "Relacionamentos" que liga os
+      temas entre si: é exatamente o que permite reconstruir o processo inteiro,
+      de empenho a pagamento. Resolve o problema dos CNPJs de fundos desconhecidos.
+    aviso_do_orgao: "o próprio TCE informa que estes dados NÃO estão em formato aberto"
+    alternativa_formato_aberto: http://www1.tce.pr.gov.br/conteudo/dados-abertos-tce-pr/318571/area/54
+
+  - chave: prefeitura_contratos
+    nome: Prefeitura — Contratos e Aditivos
+    prioridade: 2
+    url_base: https://cidadegaucha.pr.gov.br/index.php?meio=172139
+    tipo: html
+    coletor: radar.coleta.prefeitura_cms
+    verificacao: indexada
+    periodicidade_min: 1440
+    volume_observado: "~860 contratos em 108 páginas"
+    paginacao: "&pag={n}  (n de 1 a ~108)"
+    armadilhas:
+      - >-
+        O CMS propaga sessão pela query string (?sessao=b054603368svb0). O coletor
+        precisa de cookie jar e deve REMOVER o parâmetro `sessao` antes de
+        deduplicar, senão gera URLs infinitas e o índice explode.
+      - >-
+        Quatro hostnames servem o mesmo app (www., sem-www, smtp., pop.) —
+        provável wildcard DNS. Canonicalizar para um host só, ou tudo duplica 4x.
+      - >-
+        PDFs de edital ficam em /documentos/anexo_licitacao/edital{NNNNNN}.pdf,
+        mas o ID NÃO é sequencial nem cronológico. Não tente enumerar: colha os
+        links do HTML de listagem.
+    pendente: >-
+      Descobrir os IDs `meio=` de licitações, obras, convênios, emendas e
+      prestação de contas. Resolve-se raspando o menu da home com rede liberada.
+
+  - chave: tce_pr_mural_licitacoes
+    nome: TCE-PR — Mural de Licitações
+    prioridade: 2
+    url_base: https://servicos.tce.pr.gov.br/tcepr/municipal/aml/ConsultarProcessoCompraWeb.aspx
+    tipo: html
+    coletor: radar.coleta.tce_pr_mural
+    verificacao: indexada
+    periodicidade_min: 720
+    porque_importa: >-
+      Municípios do PR são obrigados a publicar suas licitações no Mural.
+      Isso cria uma verificação valiosa: licitação que aparece no diário ou no
+      site mas NÃO no Mural, ou publicada fora do prazo regulamentar.
+      CONFIRMAR o prazo exigido na instrução normativa antes de programar a regra.
+    dificuldade: alta
+    obstaculo: >-
+      ASP.NET WebForms: exige __VIEWSTATE e __EVENTVALIDATION, filtros e
+      paginação por POST. Não dá para montar URL de consulta direta.
+    layout_de_dados: https://www.tce.pr.gov.br/lumis/portal/file/fileDownload.jsp?fileId=8A914D4293F891A8019404D0CC11658B
+
+  # === PRIORIDADE 3 =======================================================
+  - chave: portal_transparencia_municipal
+    nome: Portal da Transparência (GOVBR / PRONIM TB)
+    prioridade: 3
+    url_base: https://cidadegaucha.govbr.cloud/pronimtb/
+    url_fallback: https://webapp1-cidadegaucha.cidade360.cloud/pronimtb/
+    tipo: html
+    coletor: radar.coleta.pronim_tb
+    verificacao: indexada
+    fornecedor: GOVBR (Governança Brasil) — produto PRONIM TB
+    stack: IIS / Classic ASP
+    padroes_do_fornecedor:
+      modulos: /pronimtb/tac{modulo}/{pagina}.asp
+      consultas_estaticas: /pronimtb/HTM/CP{Assunto}.htm
+      anexos: /pronimtb/upload/{Categoria}/{arquivo}.pdf
+    api: nao_confirmada
+    nota: >-
+      Nenhuma documentação pública de API. Arquitetura ASP sugere consulta por
+      POST de formulário, não REST. Primeiro teste a fazer: /pronimtb/HTM/ com os
+      nomes de página vistos em instâncias irmãs do mesmo fornecedor
+      (ex.: CPReceitasCategoriaEconomica.htm).
+    atencao_encoding: nomes de arquivo com espaço e acento; codificar a URL
+
+  - chave: camara_site
+    nome: Câmara Municipal — site e acervo
+    prioridade: 3
+    url_base: https://www.cmcidadegaucha.pr.gov.br/
+    tipo: html
+    coletor: radar.coleta.camara_cms
+    verificacao: indexada
+    melhor_entrada: https://cmcidadegaucha.pr.gov.br/?mod=busca&pagina={n}&q=&tabela=
+    documentos: /documentos/arquivos/{NNNNNN}{slug}.pdf
+    achado_relevante: >-
+      A Câmara roda o MESMO CMS da Prefeitura (mesmos parâmetros meio=/mod=,
+      IDs quase contíguos: 175253 Câmara vs 175255 Prefeitura). Não há sistema
+      legislativo (SAPL/Interlegis/Instar): o domínio é .pr.gov.br e não .leg.br,
+      e as proposições são PDF estático. Consequência prática: não espere API de
+      tramitação. Projetos de lei virão do diário oficial e de PDFs soltos.
+    regimento_interno: https://www.cmcidadegaucha.pr.gov.br/documentos/arquivos/451204regimento-interno.pdf
+
+  - chave: esic_1doc
+    nome: e-SIC / Ouvidoria (1Doc)
+    prioridade: 3
+    url_base: https://cidadegaucha.1doc.com.br/b.php?pg=o/transparencia
+    url_camara: https://cmcidadegaucha.1doc.com.br/b.php?pg=o/central_servicos&tab=a-z
+    tipo: html
+    coletor: null
+    verificacao: indexada
+    uso: >-
+      Não é fonte de coleta: é o CANAL por onde se protocola pedido de informação
+      quando o radar registra documento não localizado. Tenants separados para
+      Prefeitura e Câmara.
+
+  - chave: bll
+    nome: BLL — Bolsa de Licitações e Leilões
+    prioridade: 3
+    url_base: https://www.bll.org.br
+    tipo: html
+    coletor: null
+    verificacao: nao_confirmada
+    porque_importa: >-
+      É onde as disputas eletrônicas de fato acontecem. Editais do município
+      indicam que os pregões são conduzidos pela BLL. Fonte primária de lances,
+      desistências e ordem de classificação — dados que o edital não traz e que
+      são justamente os que revelam padrão de comportamento entre licitantes.
+    dificuldade: alta — provável exigência de login
+
+# ---------------------------------------------------------------------------
+# VALIDAÇÃO CRUZADA — fontes independentes para conferir o que o radar viu
+# ---------------------------------------------------------------------------
+validacao_cruzada:
+  - nome: Alerta Licitação
+    url: https://alertalicitacao.com.br/!municipios/4105607
+    uso: agregador chaveado por código IBGE; serve para detectar licitação que o radar perdeu
+  - nome: Portal da Transparência Federal — pessoa jurídica
+    url: https://portaldatransparencia.gov.br/pessoa-juridica/75377200000167
+    uso: recursos federais recebidos; ponto de partida para emendas e convênios
+    dado_observado: "R$ 211.507.085,44 recebidos do governo federal (valor indexado, a conferir)"
+
+# ---------------------------------------------------------------------------
+# O QUE AINDA NÃO SE SABE — lista viva. Resolver antes de confiar na cobertura.
+# ---------------------------------------------------------------------------
+lacunas_de_mapeamento:
+  - "Nenhuma URL deste arquivo foi aberta e confirmada com HTTP 200. Todas vêm de índice de buscador."
+  - "IDs `meio=` de licitações, obras, convênios, emendas e prestação de contas na Prefeitura."
+  - "CNPJs dos fundos municipais (saúde, educação, assistência) — obter pelo SIM-AM."
+  - "Se a Câmara publica no PNCP com CNPJ próprio."
+  - "Se a Câmara tem portal de transparência separado ou está dentro do PRONIM TB da Prefeitura."
+  - "Se o município publica no Diário Oficial dos Municípios do PR (AMP). Indício negativo, não verificado."
+  - "Prazo regulamentar de publicação no Mural de Licitações do TCE-PR (instrução normativa)."
+  - "Validação da hipótese de decodificação do ID de 12 dígitos do diário."
+  - "Exigência de JavaScript em PRONIM TB, 1Doc e telas *BI do TCE-PR."
+  - "robots.txt e sitemap de todos os domínios — verificar antes da primeira coleta."
+  - "Comarca de Cidade Gaúcha, para endereçar representação ao MP."

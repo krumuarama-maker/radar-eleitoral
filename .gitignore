@@ -1,0 +1,32 @@
+# Ambiente
+.venv/
+__pycache__/
+*.py[cod]
+.env
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+
+# Banco local
+*.db
+*.db-wal
+*.db-shm
+
+# ---------------------------------------------------------------------------
+# Documentos coletados NÃO vão para o git.
+# Motivos: (a) volume — um ano de editais em PDF passa de gigabytes;
+# (b) dados pessoais — PDFs de licitação vêm cheios de CPF, RG e endereço de
+# gente que não pediu para estar num repositório público (docs/07-etica-e-limites.md).
+# O que se versiona é o MANIFESTO (hash + proveniência), não o arquivo.
+# ---------------------------------------------------------------------------
+dados/originais/**
+!dados/originais/.gitkeep
+dados/extraidos/**
+!dados/extraidos/.gitkeep
+dados/indices/**
+!dados/indices/.gitkeep
+
+# Fixtures de teste são a exceção: documentos públicos, pequenos, escolhidos a dedo
+# e com dados pessoais removidos. Ver tests/fixtures/README.md.
+!tests/fixtures/**
