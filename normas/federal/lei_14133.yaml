@@ -1,0 +1,98 @@
+# Lei 14.133/2021 — Lei de Licitações e Contratos Administrativos
+#
+# STATUS: dispositivos MAPEADOS, textos PENDENTES DE CONFERÊNCIA.
+# O conteúdo abaixo veio de pesquisa secundária. Enquanto `conferido.status`
+# for `pendente`, o carregador recusa usar estes dispositivos em peça.
+#
+# Para conferir: https://www.planalto.gov.br/ccivil_03/_ato2019-2022/2021/lei/l14133.htm
+
+diploma: "Lei nº 14.133, de 1º de abril de 2021"
+ambito: federal
+url_oficial: https://www.planalto.gov.br/ccivil_03/_ato2019-2022/2021/lei/l14133.htm
+
+dispositivos:
+
+  - chave: lei_14133_art_164_impugnacao
+    dispositivo: "Art. 164"
+    ementa: "Impugnação ao edital e pedido de esclarecimento"
+    texto_literal: ""           # PREENCHER da fonte oficial
+    vigencia_inicio: "2021-04-01"
+    vigencia_fim: null
+    conferido:
+      status: pendente
+      por: null
+      em: null
+    # Estes valores orientam a regra determinística de prazo. Enquanto o texto
+    # não for conferido, a regra roda mas o achado sai sem fundamento citável.
+    parametros:
+      prazo_impugnacao_dias_uteis_antes_abertura: 3
+      prazo_resposta_administracao_dias_uteis: 3
+      legitimidade: "qualquer pessoa, física ou jurídica"
+      exige_advogado: false
+    observacao: >-
+      Sob a Lei 8.666/93 os prazos eram em dias corridos; na 14.133 passaram a
+      ser em dias úteis. Confundir os dois regimes produz acusação de
+      intempestividade onde não há.
+
+  - chave: lei_14133_art_165_recurso
+    dispositivo: "Art. 165"
+    ementa: "Recurso administrativo e pedido de reconsideração"
+    texto_literal: ""
+    vigencia_inicio: "2021-04-01"
+    vigencia_fim: null
+    conferido: {status: pendente, por: null, em: null}
+    parametros:
+      prazo_recurso_dias_uteis: 3
+      prazo_contrarrazoes_dias_uteis: 3
+      prazo_reconsideracao_dias_uteis: 3
+      prazo_decisao_superior_dias_uteis: 10
+
+  - chave: lei_14133_art_169_linhas_defesa
+    dispositivo: "Art. 169"
+    ementa: "Três linhas de defesa no controle das contratações"
+    texto_literal: ""
+    vigencia_inicio: "2021-04-01"
+    vigencia_fim: null
+    conferido: {status: pendente, por: null, em: null}
+    observacao: >-
+      Útil para enquadrar o próprio radar: o controle social opera como insumo
+      da terceira linha, não como substituto dela.
+
+  - chave: lei_14133_art_170_par4_legitimidade
+    dispositivo: "Art. 170, § 4º"
+    ementa: "Legitimidade universal para representar aos órgãos de controle"
+    texto_literal: ""
+    vigencia_inicio: "2021-04-01"
+    vigencia_fim: null
+    conferido: {status: pendente, por: null, em: null}
+    parametros:
+      legitimidade: "qualquer licitante, contratado ou pessoa física ou jurídica"
+      destino: "órgãos de controle interno ou tribunal de contas competente"
+    observacao: >-
+      É o dispositivo mais útil de todo o projeto. Fundamenta a legitimidade
+      para representar ao TCE-PR sem depender de acertar o número do artigo da
+      lei orgânica estadual. Use-o sempre como base da legitimidade nas peças.
+      CONFERIR COM PRIORIDADE MÁXIMA.
+
+  - chave: lei_14133_art_190_transicao
+    dispositivo: "Art. 190"
+    ementa: "Contrato assinado antes da vigência segue a lei revogada"
+    texto_literal: ""
+    vigencia_inicio: "2021-04-01"
+    vigencia_fim: null
+    conferido: {status: pendente, por: null, em: null}
+
+  - chave: lei_14133_art_191_opcao
+    dispositivo: "Art. 191"
+    ementa: "Opção pela Lei 8.666/93 até 31/03/2023 e seus efeitos"
+    texto_literal: ""
+    vigencia_inicio: "2021-04-01"
+    vigencia_fim: null
+    conferido: {status: pendente, por: null, em: null}
+    parametros:
+      data_limite_opcao: "2023-03-31"
+    observacao: >-
+      Se a Administração optou pela 8.666/93, o contrato resultante rege-se por
+      ela DURANTE TODA A SUA DURAÇÃO. É esta regra que o motor consulta para
+      fixar `regime_juridico` de cada processo. Sem ela, todo apontamento sobre
+      contrato antigo nasce errado.

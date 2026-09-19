@@ -1,0 +1,550 @@
+# ============================================================================
+# CATÁLOGO DE VERIFICAÇÕES — o núcleo de valor do radar
+#
+# Cada entrada é uma trilha de auditoria com origem declarada. Isso importa mais
+# do que parece: um apontamento lastreado em metodologia publicada por órgão de
+# controle (TCU, CGU, Banco Mundial, Open Contracting) é muito mais difícil de
+# descartar como implicância pessoal do que uma regra que alguém inventou.
+#
+# TIPO:
+#   D   determinístico puro — só dado estruturado (PNCP, SIM-AM). Calculável.
+#   D+  determinístico, mas exige base externa (QSA/CNPJ, CEIS, SINAPI, RAIS)
+#   H   híbrido — gatilho determinístico + confirmação por leitura de documento
+#   IA  exige interpretação de documento
+#
+# STATUS:
+#   implementada | planejada | bloqueada
+#
+# LEIA ANTES DE IMPLEMENTAR:
+# Onde a fonte está marcada [resumo], ela veio de sumário de busca e NÃO do
+# documento primário. Antes de codificar, abra a fonte. Regra construída sobre
+# citação de segunda mão produz achado que cai na primeira resposta.
+# ============================================================================
+
+metodologia:
+  limiares: >-
+    Prefira fences de Tukey (Q1 - 1.5*IQR e Q3 + 1.5*IQR) calculados sobre a
+    distribuição real dos próprios dados, em vez de limiar fixo arbitrário. É o
+    que a biblioteca Cardinal (Open Contracting Partnership) faz, e é o que
+    impede o radar de virar máquina de falso positivo: o que é "anormal" numa
+    prefeitura de 12 mil habitantes não é o mesmo que numa capital.
+  fontes_primarias:
+    - nome: OCP Cardinal — indicadores implementados sobre padrão OCDS
+      url: https://github.com/open-contracting/cardinal-rs
+      licenca: MIT
+    - nome: "Red flags in public procurement: a guide to using data (OCP, 73 indicadores)"
+      url: https://www.open-contracting.org/wp-content/uploads/2024/12/OCP2024-RedFlagProcurement-1.pdf
+      nota: LEITURA PRIORITÁRIA — não foi lido ainda
+    - nome: skills-licitacoes (andrecorumba) — catálogo em português de red flags de edital
+      url: https://github.com/andrecorumba/skills-licitacoes
+      ressalva: >-
+        Sem licença declarada. Tecnicamente não há permissão de reuso. Abrir
+        issue pedindo MIT/CC-BY antes de incorporar texto literal. As ideias
+        podem ser validadas de forma independente contra manuais da CGU/TCU.
+    - nome: TCU — jogos de planilha em obras públicas
+      url: https://portal.tcu.gov.br/en_us/biblioteca-digital/medidas-para-evitar-o-superfaturamento-decorrente-dos-jogos-de-planilha-em-obras-publicas.htm
+
+# ---------------------------------------------------------------------------
+# ONDE ESTÁ O DIFERENCIAL DESTE PROJETO
+# ---------------------------------------------------------------------------
+estrategia:
+  achado_do_levantamento: >-
+    Os robôs oficiais (ALICE e VigIA no TCU, ODP na CGU) concentram-se na fase
+    de EDITAL. Quase ninguém automatiza o que acontece DEPOIS da assinatura —
+    aditivos, medições, pagamentos fora da ordem cronológica, jogo de planilha.
+    É justamente aí que o dinheiro se perde, e é onde um radar municipal tem
+    vantagem, porque o volume de processos é pequeno o bastante para acompanhar
+    cada contrato até o último pagamento.
+  ordem_recomendada:
+    1: >-
+      Tudo que é D puro sobre o PNCP. Sem base externa, sem IA. É o alicerce e
+      entrega achado na primeira semana.
+    2: >-
+      Base CNPJ + quadro societário. Uma única integração destrava ~15 regras de
+      conluio e empresa de fachada. Maior retorno marginal do projeto inteiro.
+    3: >-
+      Indicadores estatísticos com fences de Tukey.
+    4: >-
+      Metadados de PDF das propostas (CONL-13): trivial de implementar, quase
+      ninguém faz, e pega conluio.
+    5: >-
+      Execução contratual — aditivos, medições, pagamentos. O espaço vazio.
+    6: >-
+      Por último as regras de IA sobre texto de edital. São as mais numerosas e
+      as menos confiáveis; só fazem sentido sobre um alicerce que já funciona.
+
+# ===========================================================================
+verificacoes:
+
+# --- A. DIRECIONAMENTO DE EDITAL -------------------------------------------
+- {id: DIR-01, cat: direcionamento, tipo: IA, prio: 6, status: planejada,
+   regra: "Menção a marca, modelo ou fabricante sem 'ou similar/equivalente'",
+   dados: [texto_edital], fonte: "skills-licitacoes §1.1; Lei 14.133 art. 41"}
+- {id: DIR-02, cat: direcionamento, tipo: IA, prio: 6, status: planejada,
+   regra: "Combinação inusitada de atributos que corresponde a um único produto; medidas exatas sem tolerância",
+   dados: [texto_tr], fonte: "skills-licitacoes §1.2"}
+- {id: DIR-03, cat: direcionamento, tipo: IA, prio: 6, status: planejada,
+   regra: "Especificação por solução ('adquirir software X') em vez de por necessidade",
+   dados: [texto_etp, texto_tr], fonte: "skills-licitacoes §1.3"}
+- {id: DIR-04, cat: direcionamento, tipo: IA, prio: 6, status: planejada,
+   regra: "Especificação copiada do site do fornecedor: tom promocional, erros linguísticos coincidentes",
+   dados: [texto_tr], fonte: "skills-licitacoes §1.4"}
+- {id: DIR-05, cat: direcionamento, tipo: IA, prio: 6, status: planejada,
+   regra: "Certificação/selo restrito, ou controlado por produtor único",
+   dados: [texto_edital], fonte: "skills-licitacoes §1.5"}
+- {id: DIR-06, cat: habilitacao_tecnica, tipo: H, prio: 4, status: planejada,
+   regra: "Atestado exigindo acima de 50% do quantitativo contratado sem justificativa técnica",
+   dados: [texto_edital, quantitativo_objeto], fonte: "skills-licitacoes §2.1"}
+- {id: DIR-07, cat: habilitacao_tecnica, tipo: IA, prio: 6, status: planejada,
+   regra: "Atestado com restrição temporal ('últimos 12 meses', 'contrato em vigência')",
+   dados: [texto_edital], fonte: "skills-licitacoes §2.2"}
+- {id: DIR-08, cat: habilitacao_tecnica, tipo: IA, prio: 6, status: planejada,
+   regra: "Atestado restrito a esfera pública/privada, limitação geográfica, ART/RRT desproporcional",
+   dados: [texto_edital], fonte: "skills-licitacoes §2.3"}
+- {id: DIR-09, cat: habilitacao_tecnica, tipo: IA, prio: 6, status: planejada,
+   regra: "Atestado exigido sobre parcela irrelevante do objeto, alinhada à especialidade de um concorrente",
+   dados: [texto_edital], fonte: "skills-licitacoes §2.4"}
+- {id: DIR-10, cat: habilitacao_tecnica, tipo: IA, prio: 6, status: planejada,
+   regra: "Vedação a somatório de atestados ou limite numérico injustificado",
+   dados: [texto_edital], fonte: "skills-licitacoes §2.5"}
+- {id: DIR-11, cat: habilitacao_tecnica, tipo: IA, prio: 6, status: planejada,
+   regra: "Exigência de vínculo empregatício via CTPS do responsável técnico",
+   dados: [texto_edital], fonte: "skills-licitacoes §2.6"}
+- {id: DIR-12, cat: habilitacao_tecnica, tipo: IA, prio: 6, status: planejada,
+   regra: "Vistoria obrigatória com pena de inabilitação, sem alternativa de declaração",
+   dados: [texto_edital], fonte: "skills-licitacoes §2.7"}
+- {id: DIR-13, cat: habilitacao_economica, tipo: H, prio: 3, status: planejada,
+   regra: "Capital social ou patrimônio líquido exigido acima de 10% do valor estimado, ou cumulatividade",
+   dados: [percentual_exigido, valor_estimado], fonte: "skills-licitacoes §3.1; Lei 14.133 art. 69"}
+- {id: DIR-14, cat: habilitacao_economica, tipo: H, prio: 5, status: planejada,
+   regra: "Índices contábeis (LG, SG, LC) >= 2,0 sem justificativa",
+   dados: [texto_edital], fonte: "skills-licitacoes §3.2"}
+- {id: DIR-15, cat: habilitacao_economica, tipo: D, prio: 1, status: planejada,
+   regra: "Garantia da proposta acima de 1% do valor estimado",
+   dados: [valor_garantia, valor_estimado], fonte: "skills-licitacoes §3.3"}
+- {id: DIR-16, cat: agregacao_objeto, tipo: "D+", prio: 3, status: planejada,
+   regra: "Lote único juntando itens heterogêneos de mercados distintos",
+   dados: [itens_lote, catmat_catser], fonte: "skills-licitacoes §4.1"}
+- {id: DIR-17, cat: agregacao_objeto, tipo: H, prio: 4, status: planejada,
+   regra: "Fornecimento de bens somado a prestação de serviços no mesmo lote",
+   dados: [descricao_itens], fonte: "skills-licitacoes §4.3"}
+- {id: DIR-18, cat: agregacao_objeto, tipo: D, prio: 1, status: planejada,
+   regra: "Ausência de cota ME/EPP em item divisível, ou item até o limite legal sem exclusividade ME/EPP",
+   dados: [valor_item, flag_tratamento_diferenciado], fonte: "skills-licitacoes §4.4; LC 123/2006"}
+- {id: DIR-19, cat: procedimento, tipo: H, prio: 4, status: planejada,
+   regra: "Modalidade incompatível com o objeto",
+   dados: [modalidade, natureza_objeto], fonte: "skills-licitacoes §6.3"}
+- {id: DIR-20, cat: procedimento, tipo: D, prio: 2, status: planejada,
+   regra: "Uso de plataforma proprietária pouco usada havendo sistema gratuito disponível",
+   dados: [sistema_disputa], fonte: "skills-licitacoes §6.2"}
+- {id: DIR-29, cat: pesquisa_precos, tipo: D, prio: 1, status: planejada,
+   regra: "Fornecedor que forneceu cotação ou estudo técnico vence a licitação",
+   dados: [cnpjs_cotacoes, cnpj_vencedor], fonte: "skills-licitacoes §10.1",
+   nota: "Dos achados mais fortes que existem. Objetivo e difícil de justificar."}
+- {id: DIR-30, cat: cronologia, tipo: D, prio: 1, status: planejada,
+   regra: "Inconsistência cronológica: ETP datado depois do TR, ou TR depois do edital",
+   dados: [datas_documentos], fonte: "skills-licitacoes §10.3"}
+- {id: DIR-31, cat: governanca, tipo: D, prio: 2, status: planejada,
+   regra: "Mesmo agente assina ETP, TR, edital e ata — ausência de segregação de funções",
+   dados: [responsaveis_documentos], fonte: "skills-licitacoes §10.3"}
+- {id: DIR-32, cat: concentracao, tipo: D, prio: 1, status: planejada,
+   regra: "Mesmo fornecedor vence sucessivas licitações similares no mesmo órgão",
+   dados: [historico_contratos, cnpj], fonte: "skills-licitacoes §10.4"}
+- {id: DIR-33, cat: direcionamento, tipo: IA, prio: 6, status: planejada,
+   regra: "Detalhamento técnico excessivo que individualiza o objeto",
+   dados: [texto_tr], fonte: "TCU, Acórdão 2.383/2014-Plenário [conferir]"}
+- {id: DIR-34, cat: habilitacao_tecnica, tipo: IA, prio: 5, status: planejada,
+   regra: "Exigência de habilitação que gera custo ao licitante antes da contratação",
+   dados: [texto_edital], fonte: "Súmula TCU 272 [conferir]"}
+
+# --- B. RESTRIÇÃO À COMPETITIVIDADE ----------------------------------------
+- {id: RES-01, cat: restricao, tipo: IA, prio: 5, status: planejada,
+   regra: "Exigência de sede ou filial em município, estado ou região específica",
+   dados: [texto_edital], fonte: "skills-licitacoes §1"}
+- {id: RES-03, cat: restricao, tipo: IA, prio: 5, status: planejada,
+   regra: "Número mínimo de empregados, faturamento mínimo ou instalações próprias como habilitação",
+   dados: [texto_edital], fonte: "skills-licitacoes §2"}
+- {id: RES-04, cat: restricao, tipo: IA, prio: 5, status: planejada,
+   regra: "Vedação a MEI/EIRELI, exigência de S/A, veto genérico a cooperativas",
+   dados: [texto_edital], fonte: "skills-licitacoes §3"}
+- {id: RES-05, cat: restricao, tipo: D, prio: 2, status: planejada,
+   regra: "Prazo de publicação no mínimo legal para objeto complexo; janela curta para vistoria",
+   dados: [datas_certame, complexidade_objeto], fonte: "skills-licitacoes §4"}
+- {id: RES-06, cat: restricao, tipo: IA, prio: 5, status: planejada,
+   regra: "Vedação injustificada a consórcio",
+   dados: [texto_edital], fonte: "skills-licitacoes §5"}
+- {id: RES-07, cat: restricao, tipo: IA, prio: 5, status: planejada,
+   regra: "Documentos além dos legalmente exigíveis; autenticação em cartório onde cópia simples basta",
+   dados: [texto_edital], fonte: "skills-licitacoes §6"}
+- {id: RES-08, cat: restricao, tipo: IA, prio: 5, status: planejada,
+   regra: "Certidão de inexistência de protesto ou antecedentes criminais dos sócios",
+   dados: [texto_edital], fonte: "skills-licitacoes §6"}
+- {id: RES-10, cat: julgamento, tipo: IA, prio: 5, status: planejada,
+   regra: "Declaração automática de inexequibilidade sem diligência; não admissão de saneamento de erro formal",
+   dados: [texto_edital], fonte: "skills-licitacoes §8"}
+- {id: RES-11, cat: contrato, tipo: IA, prio: 5, status: planejada,
+   regra: "Penalidade desproporcional; vedação total a subcontratação; renúncia de direitos",
+   dados: [minuta_contrato], fonte: "skills-licitacoes §9"}
+- {id: RES-12, cat: contrato, tipo: H, prio: 4, status: planejada,
+   regra: "Prazo de pagamento acima de 30 dias sem justificativa; garantia acima do limite legal",
+   dados: [minuta_contrato], fonte: "skills-licitacoes §10"}
+
+# --- C. FRACIONAMENTO DE DESPESA -------------------------------------------
+- id: FRAC-01
+  cat: fracionamento
+  tipo: D
+  prio: 1
+  status: planejada
+  regra: "Compras diretas idênticas no mesmo órgão cuja soma ultrapassa o limite de dispensa"
+  dados: [dispensas_orgao, catalogo_objeto, valores, datas]
+  fonte: "CGU [resumo — confirmar a janela temporal adotada]"
+  nota: >-
+    O limite vem de normas/ com vigência, nunca do código: ele é atualizado periodicamente
+    por decreto. E a janela de apuração (exercício? 12 meses móveis?) precisa ser
+    confirmada antes de acusar alguém de fracionar.
+- {id: FRAC-02, cat: fracionamento, tipo: D, prio: 1, status: planejada,
+   regra: "Mesmo objeto contratado sucessivamente ao longo do exercício acima do limite",
+   dados: [serie_contratacoes_catalogo], fonte: "skills-licitacoes §7.3"}
+- {id: FRAC-03, cat: fracionamento, tipo: D, prio: 1, status: planejada,
+   regra: "Mesmo fornecedor vencendo múltiplas dispensas análogas no mesmo órgão",
+   dados: [cnpj_vencedor, dispensas, objeto], fonte: "skills-licitacoes §7.3"}
+- id: FRAC-04
+  cat: fracionamento
+  tipo: D
+  prio: 1
+  status: planejada
+  regra: "Contratação única fragmentada em várias dispensas com datas próximas e objetos complementares"
+  dados: [datas, objetos, unidade_requisitante]
+  fonte: "skills-licitacoes §7.3"
+  nota: >-
+    Checar SEMPRE contra todos os órgãos do município (Prefeitura, Câmara, fundos), não só
+    um CNPJ. O fracionamento mais comum se esconde na divisão entre entes.
+- {id: FRAC-05, cat: modalidade, tipo: D, prio: 1, status: planejada,
+   regra: "Licitação cujo valor excede o limite da modalidade adotada",
+   dados: [valor_estimado, modalidade], fonte: "Trilha CGU [resumo]"}
+- {id: FRAC-06, cat: dispensa, tipo: H, prio: 3, status: planejada,
+   regra: "Emergência decorrente de falta de planejamento; repetição da mesma urgência",
+   dados: [historico_dispensas_emergenciais, justificativa], fonte: "skills-licitacoes §7.4"}
+- {id: FRAC-07, cat: inexigibilidade, tipo: IA, prio: 4, status: planejada,
+   regra: "Atestado de exclusividade emitido pelo próprio fornecedor; documento antigo",
+   dados: [processo_inexigibilidade], fonte: "skills-licitacoes §7.1"}
+- {id: FRAC-08, cat: inexigibilidade, tipo: IA, prio: 4, status: planejada,
+   regra: "Notória especialização para serviço fora do rol legal; singularidade genérica",
+   dados: [processo_inexigibilidade], fonte: "skills-licitacoes §7.2"}
+- {id: FRAC-09, cat: registro_precos, tipo: D, prio: 2, status: planejada,
+   regra: "SRP para objeto não recorrente; adesões (caronas) excessivas; prazo de ata excedido",
+   dados: [atas_rp, adesoes], fonte: "skills-licitacoes"}
+
+# --- D. CONLUIO ENTRE LICITANTES -------------------------------------------
+- {id: CONL-01, cat: conluio, tipo: "D+", prio: 2, status: planejada,
+   regra: "Sócio em comum entre licitantes do mesmo certame",
+   dados: [qsa_licitantes], fonte: "ALICE (CGU); ODP [resumo]",
+   nota: "Destrava com uma única integração de QSA. Dos indícios mais fortes."}
+- {id: CONL-02, cat: conluio, tipo: "D+", prio: 2, status: planejada,
+   regra: "Mesmo endereço, ou endereços contíguos, entre licitantes concorrentes",
+   dados: [endereco_cnpj], fonte: "Jurisprudência TCU [conferir]"}
+- {id: CONL-03, cat: conluio, tipo: "D+", prio: 2, status: planejada,
+   regra: "Mesmo telefone entre licitantes concorrentes",
+   dados: [telefone_cnpj], fonte: "Jurisprudência TCU [conferir]"}
+- {id: CONL-04, cat: conluio, tipo: H, prio: 4, status: planejada,
+   regra: "Mesmo contador ou mesmo procurador entre licitantes",
+   dados: [procuracoes, contador_qsa], fonte: "Jurisprudência TCU [conferir]"}
+- {id: CONL-05, cat: conluio, tipo: D, prio: 3, status: bloqueada,
+   regra: "Mesmo endereço de IP no envio de propostas e lances",
+   dados: [logs_sistema_pregao],
+   fonte: "Jurisprudência TCU — é o indício mais forte que existe",
+   bloqueio: "Logs do sistema de pregão raramente são públicos. Pode caber pedido via LAI."}
+- {id: CONL-07, cat: conluio, tipo: "D+", prio: 2, status: planejada,
+   regra: "CNPJs dos licitantes abertos em datas próximas entre si",
+   dados: [data_abertura_cnpj], fonte: "[resumo]"}
+- {id: CONL-08, cat: conluio, tipo: D, prio: 1, status: planejada,
+   regra: "Propostas com preços idênticos entre licitantes distintos",
+   dados: [valores_propostas], fonte: "Cardinal R028"}
+- {id: CONL-09, cat: conluio, tipo: D, prio: 3, status: planejada,
+   regra: "Diferença percentual anormalmente pequena entre a vencedora e a segunda: (2a - venc)/venc <= Q1 - 1.5*IQR",
+   dados: [valores_propostas, criterio_julgamento], fonte: "Cardinal R024"}
+- {id: CONL-10, cat: conluio, tipo: D, prio: 3, status: planejada,
+   regra: "Licitante com muitas propostas e taxa de vitória anormalmente baixa (cover bidding)",
+   dados: [historico_propostas_por_cnpj], fonte: "Cardinal R025"}
+- {id: CONL-12, cat: conluio, tipo: IA, prio: 4, status: planejada,
+   regra: "Propostas de empresas diferentes com mesma formatação, redação ou erros idênticos",
+   dados: [pdfs_propostas], fonte: "CADE/OCDE [resumo]"}
+- id: CONL-13
+  cat: conluio
+  tipo: D
+  prio: 2
+  status: planejada
+  regra: "Metadados idênticos nos PDFs das propostas (mesmo autor, software ou impressora)"
+  dados: [metadados_pdf]
+  fonte: "derivado de CONL-12"
+  nota: >-
+    Barato, rápido e quase ninguém implementa. Extrair author/producer/ creationDate dos
+    PDFs e agrupar. Alta relação sinal/esforço.
+- {id: CONL-14, cat: conluio, tipo: D, prio: 3, status: planejada,
+   regra: "Rodízio de vencedores: pequeno conjunto de empresas se alternando no mesmo órgão",
+   dados: [historico_adjudicacoes], fonte: "CADE/OCDE [resumo]"}
+- {id: CONL-15, cat: conluio, tipo: D, prio: 3, status: planejada,
+   regra: "Divisão de mercado: cada empresa vence sistematicamente num subconjunto e nunca concorre no do outro",
+   dados: [historico_orgao_objeto_vencedor], fonte: "CADE, Projeto Cérebro [resumo]"}
+- {id: CONL-16, cat: conluio, tipo: D, prio: 3, status: planejada,
+   regra: "Desistências sistemáticas quando um concorrente específico participa",
+   dados: [log_sessao, historico], fonte: "CADE [resumo]"}
+- {id: CONL-18, cat: conluio, tipo: D, prio: 2, status: planejada,
+   regra: "Propostas registradas em dias não úteis",
+   dados: [timestamp_proposta], fonte: "Trilha CGU [resumo]"}
+- {id: CONL-19, cat: conluio, tipo: D, prio: 2, status: planejada,
+   regra: "Propostas protocoladas em sequência imediata (horários consecutivos)",
+   dados: [protocolo_timestamp], fonte: "CADE [resumo]"}
+
+# --- E. EMPRESA DE FACHADA / IDONEIDADE ------------------------------------
+- {id: EMP-01, cat: fachada, tipo: "D+", prio: 2, status: planejada,
+   regra: "Capital social incompatível com o valor do contrato",
+   dados: [capital_social, valor_contrato], fonte: "[resumo]"}
+- {id: EMP-02, cat: fachada, tipo: "D+", prio: 2, status: planejada,
+   regra: "CNAE incompatível com o objeto contratado",
+   dados: [cnae, objeto], fonte: "[resumo]"}
+- {id: EMP-03, cat: fachada, tipo: "D+", prio: 2, status: planejada,
+   regra: "Empresa aberta recentemente concorrendo a contrato de grande valor",
+   dados: [data_abertura, valor], fonte: "[resumo]"}
+- {id: EMP-04, cat: fachada, tipo: "D+", prio: 3, status: planejada,
+   regra: "Nenhum empregado registrado contratando serviço intensivo em mão de obra",
+   dados: [rais_caged], fonte: "[resumo]"}
+- {id: EMP-05, cat: fachada, tipo: "D+", prio: 3, status: planejada,
+   regra: "Sócio figurando em número anormal de CNPJs — indício de interposta pessoa",
+   dados: [qsa_nacional], fonte: "[resumo]"}
+- {id: EMP-06, cat: fachada, tipo: "D+", prio: 3, status: planejada,
+   regra: "Troca abrupta de quadro societário próxima a certame ou a investigação",
+   dados: [historico_qsa], fonte: "[resumo]"}
+- {id: EMP-07, cat: fachada, tipo: "D+", prio: 3, status: planejada,
+   regra: "Endereço incompatível com o porte, ou compartilhado por dezenas de CNPJs",
+   dados: [endereco, contagem_cnpjs_endereco], fonte: "[resumo]"}
+- {id: EMP-08, cat: idoneidade, tipo: "D+", prio: 1, status: implementada,
+   regra: "Fornecedor sancionado (CEIS/CNEP/inidôneos) vencendo ou participando",
+   dados: [ceis_cnep, cnpj], fonte: "ALICE (CGU); CGU Banco de Sanções",
+   implementacao: "src/radar/analise/deterministico/r001_contratado_sancionado.py"}
+- {id: EMP-09, cat: idoneidade, tipo: "D+", prio: 2, status: planejada,
+   regra: "Situação cadastral irregular na Receita (baixada, inapta, suspensa) NA DATA DO FATO",
+   dados: [cnpj_historico], fonte: "Rosie irregular_companies_classifier"}
+- id: EMP-10
+  cat: conflito_interesse
+  tipo: "D+"
+  prio: 3
+  status: planejada
+  regra: "Vínculo entre servidor do órgão e sócio de empresa fornecedora"
+  dados: [folha_pessoal, qsa]
+  fonte: "ODP (CGU) [resumo]"
+  nota: >-
+    Achado potente e delicado. Envolve dado pessoal de terceiros: aplicar minimização
+    antes de qualquer registro (docs/07-etica-e-limites.md).
+- {id: EMP-11, cat: concentracao, tipo: D, prio: 2, status: planejada,
+   regra: "Muitas adjudicações para a mesma empresa no mesmo órgão",
+   dados: [historico_adjudicacoes], fonte: "Banco Mundial [resumo]"}
+- {id: EMP-12, cat: fachada, tipo: D, prio: 3, status: planejada,
+   regra: "Fornecedor heterogêneo: variedade de classes de itens fornecidos é outlier superior",
+   dados: [itens_adjudicados, classificacao], fonte: "Cardinal R048"}
+
+# --- F. SOBREPREÇO ---------------------------------------------------------
+- id: SOB-01
+  cat: sobrepreco
+  tipo: D
+  prio: 2
+  status: planejada
+  regra: "Preço unitário acima da mediana de mercado para o mesmo item de catálogo"
+  dados: [catmat, preco_unitario, base_historica]
+  fonte: "Trilha CGU [resumo]; ALICE"
+  nota: >-
+    Só comparável se coincidirem especificação, unidade, quantidade, data-base, local de
+    entrega e frete. Diferença de preço isolada não é sobrepreço.
+- id: SOB-02
+  cat: sobrepreco
+  tipo: "D+"
+  prio: 3
+  status: planejada
+  regra: "Preço de serviço de engenharia acima do SINAPI/SICRO para o mesmo código, sem justificativa"
+  dados: [planilha_orcamentaria, sinapi]
+  fonte: "CGU/TCU [resumo]"
+  nota: >-
+    Guardar a tabela SINAPI POR MÊS. Comparar edital de 2024 com tabela de 2026 é falso
+    positivo garantido. E atenção a com/sem desoneração.
+- {id: SOB-03, cat: pesquisa_precos, tipo: H, prio: 3, status: planejada,
+   regra: "Pesquisa baseada só em 3 orçamentos de fornecedores, sem SINAPI/Painel/contratos similares",
+   dados: [processo_pesquisa_precos], fonte: "skills-licitacoes §5.2; IN SEGES 65/2021"}
+- {id: SOB-04, cat: pesquisa_precos, tipo: H, prio: 3, status: planejada,
+   regra: "Adoção da maior cotação como referência; memória de cálculo ausente",
+   dados: [pesquisa_precos], fonte: "skills-licitacoes §5.3"}
+- {id: SOB-05, cat: pesquisa_precos, tipo: "D+", prio: 2, status: planejada,
+   regra: "Cotações de fornecedores ligados entre si (sócios, endereços, telefones)",
+   dados: [cnpjs_cotacoes, qsa], fonte: "skills-licitacoes §5.1"}
+- {id: SOB-06, cat: pesquisa_precos, tipo: D, prio: 1, status: planejada,
+   regra: "Cotações datadas depois da elaboração do TR, ou coincidentes com a data do edital",
+   dados: [datas_cotacoes, datas_documentos], fonte: "skills-licitacoes §5.4"}
+- {id: SOB-07, cat: proposta, tipo: D, prio: 3, status: planejada,
+   regra: "Proposta muito descontada em relação à segunda — risco de inexequibilidade",
+   dados: [valores_propostas], fonte: "Cardinal R058"}
+- {id: SOB-08, cat: obras, tipo: D, prio: 2, status: planejada,
+   regra: "Ausência de critério de aceitabilidade de preços unitários E global",
+   dados: [edital_obra], fonte: "Súmula TCU 259 [conferir] — é obrigação, não faculdade"}
+- {id: SOB-09, cat: obras, tipo: D, prio: 3, status: planejada,
+   regra: "BDI incompatível com a referência para o tipo de obra",
+   dados: [planilha, bdi], fonte: "[resumo]"}
+- id: SOB-14
+  cat: sobrepreco
+  tipo: "D+"
+  prio: 1
+  status: planejada
+  regra: "Medicamento adquirido acima do Preço Máximo de Venda ao Governo (PMVG/CMED)"
+  dados: [itens_medicamento, tabela_cmed]
+  fonte: "CMED/ANVISA"
+  nota: >-
+    O melhor achado de saúde que existe: o PMVG é TETO LEGAL, não referência. Compra acima
+    dele não é indício de sobrepreço — é ilegalidade direta. Comparação trivial, custo
+    computacional quase nulo. Implementar cedo.
+
+# --- G. OBRAS: JOGO DE PLANILHA --------------------------------------------
+- {id: OBR-01, cat: jogo_planilha, tipo: D, prio: 3, status: planejada,
+   regra: "Preços unitários muito baixos em itens que não serão executados e muito altos nos que serão ampliados",
+   dados: [planilha_proposta, planilha_referencia], fonte: "TCU — jogos de planilha"}
+- {id: OBR-03, cat: jogo_planilha, tipo: D, prio: 2, status: planejada,
+   regra: "Aditivo que aumenta justamente os itens de preço acima da referência e reduz os abaixo",
+   dados: [planilha_original, aditivos], fonte: "TCU",
+   nota: "O TCU entende que a caracterização independe de demonstração de dolo. [conferir]"}
+- {id: OBR-04, cat: jogo_cronograma, tipo: D, prio: 3, status: planejada,
+   regra: "Sobrepreço nas etapas iniciais e subpreço nas finais do cronograma físico-financeiro",
+   dados: [cronograma], fonte: "[resumo]"}
+- {id: OBR-05, cat: obras, tipo: IA, prio: 4, status: planejada,
+   regra: "Projeto básico deficiente — causa-raiz da maior parte dos aditivos",
+   dados: [projeto_basico], fonte: "skills-licitacoes"}
+- {id: OBR-06, cat: obras, tipo: IA, prio: 4, status: planejada,
+   regra: "Medição aprovada sem evidência física correspondente",
+   dados: [boletins_medicao, evidencias], fonte: "Manual CGU [resumo]",
+   nota: "Análise documental não substitui vistoria. O achado é a incompatibilidade, não a inexecução."}
+
+# --- H. ADITIVOS -----------------------------------------------------------
+- id: ADI-01
+  cat: aditivo
+  tipo: D
+  prio: 1
+  status: planejada
+  regra: "Soma dos aditivos acima do limite legal sobre o valor inicial"
+  dados: [valor_inicial, aditivos]
+  fonte: "Lei 14.133 art. 125 [conferir]"
+  nota: >-
+    O percentual e a base de cálculo vêm de normas/, com o regime do contrato. Contrato
+    sob a Lei 8.666 tem sua própria regra. E a base é o valor INICIAL, não o já aditado —
+    erro comum que inverte o resultado.
+- {id: ADI-03, cat: aditivo, tipo: D, prio: 2, status: planejada,
+   regra: "Prorrogações sucessivas sob pretexto de serviço contínuo, sem nova competição",
+   dados: [historico_aditivos], fonte: "[resumo] jurisprudência TCU"}
+- {id: ADI-04, cat: aditivo, tipo: D, prio: 1, status: planejada,
+   regra: "Aditivo assinado muito próximo à assinatura do contrato original",
+   dados: [data_contrato, data_primeiro_aditivo], fonte: "derivado; Banco Mundial [resumo]",
+   nota: "Indica planejamento deliberadamente incompleto. Barato de calcular."}
+- {id: ADI-05, cat: aditivo, tipo: IA, prio: 4, status: planejada,
+   regra: "Alteração do objeto disfarçada de aditivo quantitativo",
+   dados: [objeto_original, objeto_aditado], fonte: "skills-licitacoes"}
+- {id: ADI-07, cat: reajuste, tipo: H, prio: 3, status: planejada,
+   regra: "Reajuste sem índice previsto, fora da periodicidade, ou com índice diverso do contratual",
+   dados: [clausula_reajuste, termo], fonte: "skills-licitacoes §7"}
+
+# --- I. PAGAMENTOS — O ESPAÇO VAZIO ----------------------------------------
+- {id: PAG-01, cat: pagamento, tipo: D, prio: 1, status: planejada,
+   regra: "Pagamento sem liquidação prévia registrada",
+   dados: [empenho, liquidacao, pagamento], fonte: "TCU [resumo]"}
+- {id: PAG-02, cat: pagamento, tipo: D, prio: 1, status: planejada,
+   regra: "Quebra da ordem cronológica de pagamentos sem justificativa publicada",
+   dados: [data_liquidacao, data_pagamento, fonte_recurso],
+   fonte: "Lei 14.133 art. 141 [conferir]",
+   nota: "O marco inicial é a data da LIQUIDAÇÃO, não a da nota fiscal."}
+- {id: PAG-03, cat: pagamento, tipo: D, prio: 2, status: planejada,
+   regra: "Celeridade anômala de pagamento em favor de fornecedor específico",
+   dados: [tempo_liquidacao_pagamento_por_fornecedor], fonte: "[resumo]"}
+- {id: PAG-04, cat: pagamento, tipo: D, prio: 1, status: planejada,
+   regra: "Nota fiscal com data anterior ao contrato ou ao empenho",
+   dados: [data_nf, data_contrato, data_empenho], fonte: "regra elementar de liquidação"}
+- {id: PAG-06, cat: pagamento, tipo: D, prio: 1, status: planejada,
+   regra: "Soma dos pagamentos acima do valor contratado somado aos aditivos",
+   dados: [pagamentos, contrato, aditivos], fonte: "Banco Mundial [resumo]"}
+- {id: PAG-07, cat: pagamento, tipo: D, prio: 3, status: planejada,
+   regra: "Notas fiscais sequenciais indicando fornecedor que só vende ao poder público",
+   dados: [numeracao_nf], fonte: "[resumo]"}
+- {id: PAG-08, cat: pagamento, tipo: D, prio: 2, status: planejada,
+   regra: "Muitos contratos pequenos com o mesmo fornecedor",
+   dados: [contratos_por_cnpj], fonte: "Banco Mundial [resumo]"}
+
+# --- J. PROCEDIMENTO E PUBLICIDADE -----------------------------------------
+- {id: PRO-01, cat: prazo, tipo: D, prio: 1, status: planejada,
+   regra: "Prazo entre publicação e abertura abaixo do mínimo da modalidade",
+   dados: [data_publicacao, data_abertura, modalidade], fonte: "Cardinal R003; Lei 14.133"}
+- {id: PRO-02, cat: competicao, tipo: D, prio: 1, status: planejada,
+   regra: "Proposta única recebida em modalidade competitiva",
+   dados: [n_licitantes, modalidade], fonte: "Cardinal R018",
+   nota: "O indicador mais usado e mais robusto da literatura. Implementar primeiro."}
+- {id: PRO-03, cat: julgamento, tipo: D, prio: 1, status: planejada,
+   regra: "Menor proposta desclassificada quando o critério é só preço",
+   dados: [propostas, status, criterio], fonte: "Cardinal R036"}
+- {id: PRO-04, cat: julgamento, tipo: D, prio: 1, status: planejada,
+   regra: "Todas as propostas desclassificadas exceto a vencedora",
+   dados: [propostas, status], fonte: "Cardinal R035"}
+- {id: PRO-05, cat: julgamento, tipo: D, prio: 3, status: planejada,
+   regra: "Taxa de desclassificação anormalmente alta por unidade compradora ou por licitante",
+   dados: [historico_propostas_status], fonte: "Cardinal R038"}
+- {id: PRO-06, cat: julgamento, tipo: D, prio: 1, status: planejada,
+   regra: "Proposta recebida após o prazo vence o certame",
+   dados: [timestamp_recebimento, deadline], fonte: "Cardinal R030"}
+- id: PRO-07
+  cat: publicidade
+  tipo: D
+  prio: 1
+  status: planejada
+  regra: "Contratação ausente do PNCP, ou publicada em veículo de baixo alcance"
+  dados: [publicacoes, pncp]
+  fonte: "Lei 14.133 art. 54 [conferir]"
+  nota: >-
+    Sob a Lei 14.133 a publicação no PNCP é condição de eficácia. A ausência é achado
+    objetivo. Cuidado com a regra R3: confirmar que é ausência no portal, e não falha da
+    coleta.
+- {id: PRO-08, cat: publicidade, tipo: D, prio: 2, status: planejada,
+   regra: "Retificação de edital sem reabertura de prazo quando a alteração afeta as propostas",
+   dados: [versoes_edital, datas], fonte: "Lei 14.133 art. 55 §1º [conferir]",
+   nota: "Exige diff entre versões do documento — daí o versionamento em documento_versao."}
+- id: PRO-15
+  cat: publicidade
+  tipo: D
+  prio: 1
+  status: planejada
+  regra: "Licitação municipal do PR publicada no Mural do TCE-PR fora do prazo, ou ausente"
+  dados: [mural_tce_pr, data_encerramento_propostas]
+  fonte: "IN TCE-PR 156/2020 c/ IN 208/2026"
+  nota: >-
+    Específica do Paraná e de alto retorno. ATENÇÃO À TRANSIÇÃO: certame anterior a
+    jun/2026 segue a redação original da IN 156, cujos prazos ainda não foram levantados.
+    Enquanto não forem, a regra deve devolver SEM_DADOS para esses casos — nunca aplicar o
+    prazo novo por analogia.
+- {id: PRO-12, cat: planejamento, tipo: H, prio: 3, status: planejada,
+   regra: "ETP ausente ou incompleto; objeto ausente do Plano de Contratações Anual",
+   dados: [etp, pca], fonte: "skills-licitacoes",
+   nota: "O PCA é subusado e revela compra fora do que a Prefeitura planejou."}
+- {id: PRO-14, cat: sinal_externo, tipo: D, prio: 2, status: planejada,
+   regra: "Existência de impugnações, recursos ou denúncias sobre o certame",
+   dados: [impugnacoes, recursos], fonte: "Banco Mundial [resumo]",
+   nota: "O Banco Mundial lista denúncias como o PRIMEIRO sinal de alerta. Outros já olharam."}
+
+# --- K. TRANSPARÊNCIA E COBERTURA ------------------------------------------
+- {id: TRA-01, cat: transparencia, tipo: D, prio: 1, status: planejada,
+   regra: "Documento referenciado em outro documento mas não disponível em nenhuma fonte",
+   dados: [referencias_cruzadas], fonte: "próprio",
+   nota: "Vira pedido via LAI, não denúncia. É lacuna de transparência, não irregularidade."}
+- {id: TRA-02, cat: transparencia, tipo: D, prio: 1, status: planejada,
+   regra: "Link quebrado ou documento ilegível em portal oficial",
+   dados: [status_http, resultado_extracao], fonte: "próprio"}
+- id: SEG-01
+  cat: seguranca
+  tipo: D
+  prio: 1
+  status: planejada
+  regra: "Documento coletado contém texto endereçado a sistema automatizado (tentativa de injeção)"
+  dados: [texto_extraido]
+  fonte: "próprio — AGENTS.md regra R5"
+  nota: >-
+    Improvável, mas se acontecer é achado de segurança relevante por si só — e jamais uma
+    instrução a cumprir.

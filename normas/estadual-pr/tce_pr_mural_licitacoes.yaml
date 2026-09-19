@@ -1,0 +1,69 @@
+# Mural de Licitações Municipais do TCE-PR
+#
+# Municípios do Paraná são obrigados a enviar dados de suas licitações ao Mural.
+# Isso cria a verificação automática de melhor retorno para um radar paranaense:
+# publicação fora do prazo, ou ausência total de registro, é achado objetivo,
+# com norma específica e responsável formalmente designado.
+#
+# ATENÇÃO À TRANSIÇÃO: a IN 208/2026 alterou a IN 156/2020. Certame anterior à
+# vigência da IN 208 segue os prazos da redação original — QUE AINDA NÃO FORAM
+# LEVANTADOS. Acusar atraso em certame antigo com o prazo novo é exatamente o
+# erro que a regra R4 existe para impedir.
+
+diploma: "Instrução Normativa TCE-PR nº 156/2020, alterada pela IN nº 208/2026"
+ambito: estadual_pr
+url_oficial: https://www.tce.pr.gov.br/conteudo/instrucao-normativa-n-208-de-3-de-junho-de-2026.htm
+url_norma_original: https://www1.tce.pr.gov.br/conteudo/instrucao-normativa-n-156-de-13-de-novembro-de-2020/332144/area/249
+fonte_dados_aberta: https://servicos.tce.pr.gov.br/servicos/arquivos/dadosabertos/muraldelicitacoes/{ano}_mural_de_licitacoes_base_de_dados.csv
+
+dispositivos:
+
+  - chave: tce_pr_mural_prazo_modalidades_in208
+    dispositivo: "IN 156/2020, com a redação da IN 208/2026"
+    ementa: "Prazo de publicação no Mural — demais modalidades licitatórias"
+    texto_literal: ""
+    # A IN 208 foi aprovada na Sessão Plenária Virtual nº 13/2026, encerrada em
+    # 06/05, e é datada de 03/06/2026. A data exata de INÍCIO DA VIGÊNCIA precisa
+    # ser lida na própria norma — não se presume que seja a data da edição.
+    vigencia_inicio: "2026-06-03"      # A CONFERIR na própria IN
+    vigencia_fim: null
+    conferido: {status: pendente, por: null, em: null}
+    parametros:
+      prazo_dias_uteis_antes_encerramento_propostas: 7
+
+  - chave: tce_pr_mural_prazo_terceiro_setor_in208
+    dispositivo: "IN 156/2020, com a redação da IN 208/2026"
+    ementa: "Prazo de publicação no Mural — contratação de entidades do terceiro setor"
+    texto_literal: ""
+    vigencia_inicio: "2026-06-03"
+    vigencia_fim: null
+    conferido: {status: pendente, por: null, em: null}
+    parametros:
+      prazo_dias_uteis_antes_encerramento_propostas: 10
+
+  - chave: tce_pr_mural_prazo_dispensa_in208
+    dispositivo: "IN 156/2020, com a redação da IN 208/2026"
+    ementa: "Prazo de publicação no Mural — dispensa e inexigibilidade"
+    texto_literal: ""
+    vigencia_inicio: "2026-06-03"
+    vigencia_fim: null
+    conferido: {status: pendente, por: null, em: null}
+    parametros:
+      prazo_dias_uteis_apos_ratificacao: 5
+
+  # ===================================================================
+  # LACUNA CONHECIDA — bloqueia verificação de certame anterior a jun/2026
+  # ===================================================================
+  - chave: tce_pr_mural_prazo_redacao_original_in156
+    dispositivo: "IN 156/2020, redação original"
+    ementa: "Prazos de publicação no Mural antes da IN 208/2026"
+    texto_literal: ""
+    vigencia_inicio: "2020-11-13"
+    vigencia_fim: "2026-06-02"        # A CONFERIR
+    conferido: {status: pendente, por: null, em: null}
+    parametros: {}                     # DESCONHECIDOS — precisam ser lidos na IN 156
+    bloqueia:
+      - >-
+        Enquanto estes prazos não forem levantados, a regra de atraso no Mural
+        NÃO PODE rodar sobre certame anterior a junho de 2026. Ela deve devolver
+        SEM_DADOS com este motivo, nunca aplicar o prazo novo por analogia.
