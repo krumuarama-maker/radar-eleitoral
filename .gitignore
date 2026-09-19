@@ -30,3 +30,8 @@ dados/indices/**
 # Fixtures de teste são a exceção: documentos públicos, pequenos, escolhidos a dedo
 # e com dados pessoais removidos. Ver tests/fixtures/README.md.
 !tests/fixtures/**
+
+# Relatórios de verificação: só entram no repositório quando algo foi de fato
+# medido. O script recusa commitar uma execução em que nada respondeu — um
+# registro cheio de 403 se pareceria com resultado.
+verificacao/.veredito
