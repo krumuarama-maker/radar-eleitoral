@@ -29,9 +29,11 @@ import httpx
 
 log = logging.getLogger(__name__)
 
+#: Cabeçalho HTTP não aceita caracteres fora de ASCII: httpx levanta
+#: UnicodeEncodeError e a requisição nem sai. Sem acento, de propósito.
 UA = (
-    "RadarFiscalizacaoMunicipal/0.1 (projeto de fiscalização cívica; "
-    "contato via repositório; respeita robots.txt)"
+    "RadarFiscalizacaoMunicipal/0.1 "
+    "(controle social; contato no repositorio; respeita robots.txt)"
 )
 
 
