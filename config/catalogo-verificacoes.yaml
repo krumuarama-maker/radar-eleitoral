@@ -194,7 +194,12 @@ verificacoes:
   cat: fracionamento
   tipo: D
   prio: 1
-  status: planejada
+  status: bloqueada
+  implementacao: src/radar/analise/deterministico/r003_fracionamento.py
+  bloqueio: >-
+    Implementada, mas devolve SEM_DADOS em qualquer processo real: o limite de
+    dispensa ainda não foi conferido na fonte oficial (item B8 de
+    docs/09-pendencias-de-conferencia.md). A regra recusa chutar o valor.
   regra: "Compras diretas idênticas no mesmo órgão cuja soma ultrapassa o limite de dispensa"
   dados: [dispensas_orgao, catalogo_objeto, valores, datas]
   fonte: "CGU [resumo — confirmar a janela temporal adotada]"
@@ -212,7 +217,11 @@ verificacoes:
   cat: fracionamento
   tipo: D
   prio: 1
-  status: planejada
+  status: bloqueada
+  implementacao: src/radar/analise/deterministico/r003_fracionamento.py
+  bloqueio: >-
+    Mesma implementação da FRAC-01, e mesmo bloqueio: sem o limite de dispensa
+    conferido, a soma não tem contra o que ser comparada.
   regra: "Contratação única fragmentada em várias dispensas com datas próximas e objetos complementares"
   dados: [datas, objetos, unidade_requisitante]
   fonte: "skills-licitacoes §7.3"
