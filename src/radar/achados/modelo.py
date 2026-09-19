@@ -14,9 +14,9 @@ from __future__ import annotations
 import enum
 import hashlib
 import json
-from dataclasses import dataclass, field, asdict
+from dataclasses import asdict, dataclass, field
 from datetime import date, datetime
-from typing import Any
+from typing import Any, ClassVar
 
 
 class Gravidade(enum.StrEnum):
@@ -36,15 +36,15 @@ class ForcaEvidencia(enum.StrEnum):
     "está provado".
     """
 
-    FRACA = "fraca"          # um indício, compatível com várias explicações
-    MODERADA = "moderada"    # documento sustenta, mas falta contexto
-    FORTE = "forte"          # o documento diz literalmente, e é conferível
+    FRACA = "fraca"  # um indício, compatível com várias explicações
+    MODERADA = "moderada"  # documento sustenta, mas falta contexto
+    FORTE = "forte"  # o documento diz literalmente, e é conferível
 
 
 class Urgencia(enum.StrEnum):
     SEM_PRAZO = "sem_prazo"
     ACOMPANHAR = "acompanhar"
-    PRAZO_CORRENDO = "prazo_correndo"   # ex.: edital ainda impugnável
+    PRAZO_CORRENDO = "prazo_correndo"  # ex.: edital ainda impugnável
     IMEDIATA = "imediata"
 
 
@@ -198,10 +198,20 @@ class Ficha:
         self._validar_fatos_nao_sao_hipoteses()
         self._validar_coerencia_gravidade()
 
-    _MARCAS_DE_HIPOTESE = (
-        "provavelmente", "possivelmente", "indica que", "sugere que", "aparenta",
-        "parece", "pode ter", "teria sido", "supostamente", "presume-se",
-        "tudo leva a crer", "é evidente que", "claramente houve",
+    _MARCAS_DE_HIPOTESE: ClassVar[tuple[str, ...]] = (
+        "provavelmente",
+        "possivelmente",
+        "indica que",
+        "sugere que",
+        "aparenta",
+        "parece",
+        "pode ter",
+        "teria sido",
+        "supostamente",
+        "presume-se",
+        "tudo leva a crer",
+        "é evidente que",
+        "claramente houve",
     )
 
     def _validar_fatos_nao_sao_hipoteses(self) -> None:
@@ -252,11 +262,13 @@ class Ficha:
 
     def impressao_digital(self) -> str:
         """Identidade estável do achado, para não duplicar entre execuções."""
-        base = "|".join([
-            self.regra_codigo or "manual",
-            str(self.processo_id or ""),
-            *sorted(e.sha256_versao for e in self.evidencias),
-        ])
+        base = "|".join(
+            [
+                self.regra_codigo or "manual",
+                str(self.processo_id or ""),
+                *sorted(e.sha256_versao for e in self.evidencias),
+            ]
+        )
         return hashlib.sha256(base.encode()).hexdigest()[:16]
 
     def para_json(self) -> str:
@@ -280,12 +292,18 @@ class Ficha:
             *(f"- {f}" for f in self.fatos_documentais),
         ]
         if self.hipoteses:
-            linhas += ["", "**Hipóteses (leitura, não fato)**",
-                       *(f"- {h}" for h in self.hipoteses)]
+            linhas += [
+                "",
+                "**Hipóteses (leitura, não fato)**",
+                *(f"- {h}" for h in self.hipoteses),
+            ]
         if self.hipotese_alternativa:
-            linhas += ["", "**Explicação alternativa considerada**",
-                       f"- {self.hipotese_alternativa}"]
-        linhas += ["", "**Lacunas**", *(f"- {l}" for l in self.lacunas)]
+            linhas += [
+                "",
+                "**Explicação alternativa considerada**",
+                f"- {self.hipotese_alternativa}",
+            ]
+        linhas += ["", "**Lacunas**", *(f"- {lac}" for lac in self.lacunas)]
         linhas += ["", "**Evidências**"]
         for e in self.evidencias:
             pag = f", p. {e.pagina}" if e.pagina else ""

@@ -18,8 +18,8 @@ from __future__ import annotations
 import argparse
 import json
 import sys
-from dataclasses import dataclass, asdict
-from datetime import datetime, timezone
+from dataclasses import asdict, dataclass
+from datetime import UTC, datetime
 from pathlib import Path
 from urllib.parse import urlparse
 
@@ -57,7 +57,7 @@ class Sonda:
             return "FALHA"
         if 200 <= self.status_http < 300:
             if self.tamanho < 500:
-                return "SUSPEITA"      # 200 com corpo vazio costuma ser erro mascarado
+                return "SUSPEITA"  # 200 com corpo vazio costuma ser erro mascarado
             return "OK"
         if self.status_http in (401, 403):
             return "BLOQUEADA"
@@ -67,14 +67,19 @@ class Sonda:
 
 
 MARCAS_JS = (
-    "window.__NUXT__", "window.__NEXT_DATA__", "ng-app", "data-reactroot",
-    "<div id=\"root\"></div>", "<div id=\"app\"></div>", "powerbi",
+    "window.__NUXT__",
+    "window.__NEXT_DATA__",
+    "ng-app",
+    "data-reactroot",
+    '<div id="root"></div>',
+    '<div id="app"></div>',
+    "powerbi",
 )
 
 
 def sondar(cliente: httpx.Client, chave: str, url: str, prioridade: int) -> Sonda:
     s = Sonda(chave=chave, url=url, prioridade=prioridade)
-    inicio = datetime.now(timezone.utc)
+    inicio = datetime.now(UTC)
     try:
         # GET, não HEAD: portais governamentais respondem HEAD de forma errática,
         # e alguns devolvem 405 num endpoint que funciona perfeitamente no GET.
@@ -90,7 +95,7 @@ def sondar(cliente: httpx.Client, chave: str, url: str, prioridade: int) -> Sond
             s.parece_exigir_js = any(m.lower() in texto.lower() for m in MARCAS_JS)
     except httpx.HTTPError as exc:
         s.erro = f"{type(exc).__name__}: {exc}"
-    s.tempo_ms = int((datetime.now(timezone.utc) - inicio).total_seconds() * 1000)
+    s.tempo_ms = int((datetime.now(UTC) - inicio).total_seconds() * 1000)
     return s
 
 
@@ -113,7 +118,7 @@ def coletar_urls(cfg: dict, prioridade_max: int) -> list[tuple[str, str, int]]:
             continue
         for campo in ("url_base", "url_fallback", "url_camara", "openapi", "melhor_entrada"):
             if url := f.get(campo):
-                if "{" in url:       # template, não URL — pular
+                if "{" in url:  # template, não URL — pular
                     continue
                 alvos.append((f"{f['chave']}:{campo}", url, f.get("prioridade", 9)))
     for v in cfg.get("validacao_cruzada", []):
@@ -136,8 +141,9 @@ def main() -> int:
 
     sondas: list[Sonda] = []
     hosts_vistos: set[str] = set()
-    with httpx.Client(headers={"User-Agent": UA}, timeout=args.timeout,
-                      follow_redirects=True, verify=True) as cli:
+    with httpx.Client(
+        headers={"User-Agent": UA}, timeout=args.timeout, follow_redirects=True, verify=True
+    ) as cli:
         for chave, url, prio in alvos:
             s = sondar(cli, chave, url, prio)
             host = urlparse(url).netloc
@@ -146,8 +152,14 @@ def main() -> int:
                 hosts_vistos.add(host)
             sondas.append(s)
             if not args.json:
-                marca = {"OK": "✓", "SUSPEITA": "?", "BLOQUEADA": "⊘",
-                         "INEXISTENTE": "✗", "FALHA": "✗", "ANOMALA": "!"}[s.veredito]
+                marca = {
+                    "OK": "✓",
+                    "SUSPEITA": "?",
+                    "BLOQUEADA": "⊘",
+                    "INEXISTENTE": "✗",
+                    "FALHA": "✗",
+                    "ANOMALA": "!",
+                }[s.veredito]
                 js = " [JS]" if s.parece_exigir_js else ""
                 det = s.erro or f"{s.status_http} {s.content_type} {s.tamanho}B {s.tempo_ms}ms"
                 print(f" {marca} P{s.prioridade} {s.chave:42s} {det}{js}")

@@ -28,7 +28,12 @@ from datetime import date
 from typing import Any
 
 from radar.achados.modelo import (
-    Evidencia, Ficha, ForcaEvidencia, Gravidade, Origem, Urgencia,
+    Evidencia,
+    Ficha,
+    ForcaEvidencia,
+    Gravidade,
+    Origem,
+    Urgencia,
 )
 from radar.analise.deterministico.base import REGISTRO, Contexto, Regra, Resultado
 
@@ -63,7 +68,7 @@ class R001ContratadoSancionado(Regra):
         "CGU — Banco de Sanções (CEIS/CNEP/CEPIM); trilha padrão de auditoria de "
         "contratações, presente nos manuais de fiscalização de tribunais de contas."
     )
-    requisitos = ()   # a data vem de data_referencia, com tratamento próprio
+    requisitos = ()  # a data vem de data_referencia, com tratamento próprio
 
     def avaliar(self, ctx: Contexto) -> Resultado:
         data_ato = ctx.data_referencia
@@ -75,8 +80,7 @@ class R001ContratadoSancionado(Regra):
             )
 
         vencedores = [
-            p for p in ctx.participantes
-            if p.get("papel") in ("vencedor", "contratado")
+            p for p in ctx.participantes if p.get("papel") in ("vencedor", "contratado")
         ]
         if not vencedores:
             return Resultado.nao_aplicavel(
@@ -169,11 +173,11 @@ class R001ContratadoSancionado(Regra):
 
         return Ficha(
             codigo=f"{ctx.municipio_ibge}-{self.codigo}-{ctx.processo.get('id', '?')}-"
-                   f"{so_digitos(venc.get('documento_fiscal', ''))[:8]}",
+            f"{so_digitos(venc.get('documento_fiscal', ''))[:8]}",
             titulo=(
                 f"Contratado com registro de sanção impeditiva vigente em {cadastro}"
-                if exato else
-                "Contratado com raiz de CNPJ coincidente com empresa sancionada"
+                if exato
+                else "Contratado com raiz de CNPJ coincidente com empresa sancionada"
             ),
             fatos_documentais=fatos,
             hipoteses=hipoteses,
@@ -223,6 +227,7 @@ def vigente_em(sancao: dict[str, Any], quando: date) -> bool:
     presumir vigência a favor da acusação é exatamente o viés que este projeto
     combate.
     """
+
     def d(v: Any) -> date | None:
         if isinstance(v, date):
             return v

@@ -82,7 +82,7 @@ class BaseNormas:
                     ementa=d.get("ementa", ""),
                     texto_literal=(d.get("texto_literal") or "").strip(),
                     url_oficial=d.get("url_oficial") or url_diploma,
-                    vigencia_inicio=_data(d["vigencia_inicio"]),
+                    vigencia_inicio=_data_obrigatoria(d["vigencia_inicio"], d["chave"]),
                     vigencia_fim=_data(d.get("vigencia_fim")),
                     conferido=(conf.get("status") == "conferido"),
                     conferido_por=conf.get("por"),
@@ -128,8 +128,11 @@ class BaseNormas:
         if not d.parametros:
             raise NormaNaoConferida(
                 f"'{chave}' não tem parâmetros carregados. "
-                + (" ".join(d.bloqueia) if d.bloqueia else
-                   "Levante-os na fonte oficial antes de usar a regra que depende deles.")
+                + (
+                    " ".join(d.bloqueia)
+                    if d.bloqueia
+                    else "Levante-os na fonte oficial antes de usar a regra que depende deles."
+                )
             )
         if parametro is None:
             if len(d.parametros) != 1:
@@ -183,6 +186,17 @@ class BaseNormas:
 
     def __len__(self) -> int:
         return sum(len(v) for v in self._por_chave.values())
+
+
+def _data_obrigatoria(v: Any, chave: str) -> date:
+    """Vigência inicial é obrigatória: sem ela a regra R4 não tem como operar."""
+    d = _data(v)
+    if d is None:
+        raise ValueError(
+            f"dispositivo '{chave}' sem vigencia_inicio. Toda norma tem data a partir "
+            "da qual passou a valer; sem ela, não há como saber se alcança o fato."
+        )
+    return d
 
 
 def _data(v: Any) -> date | None:

@@ -17,20 +17,25 @@ from datetime import date
 
 import pytest
 
-from radar.achados.modelo import ForcaEvidencia, Gravidade, RegimeJuridico
+from radar.achados.modelo import ForcaEvidencia, Gravidade
 from radar.analise.deterministico.base import Contexto, Desfecho
 from radar.analise.deterministico.r001_contratado_sancionado import REGRA
 
 
 class NormasFalsas:
-    def obter(self, chave: str, em: date): return None
-    def valor(self, chave: str, em: date): return None
+    def obter(self, chave: str, em: date):
+        return None
+
+    def valor(self, chave: str, em: date):
+        return None
 
 
 def contexto(*, participantes, sancoes, data="2026-03-12"):
     return Contexto(
         processo={
-            "id": 42, "numero": "012/2026", "regime_juridico": "lei_14133",
+            "id": 42,
+            "numero": "012/2026",
+            "regime_juridico": "lei_14133",
             "data_publicacao": data,
         },
         documentos=[],

@@ -8,7 +8,10 @@ from pathlib import Path
 import pytest
 
 from radar.analise.normas import (
-    BaseNormas, NormaInexistente, NormaNaoConferida, NormaNaoVigente,
+    BaseNormas,
+    NormaInexistente,
+    NormaNaoConferida,
+    NormaNaoVigente,
 )
 
 RAIZ = Path(__file__).resolve().parents[2] / "normas"

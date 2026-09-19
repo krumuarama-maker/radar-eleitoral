@@ -17,10 +17,11 @@ import json
 import logging
 import mimetypes
 import time
+from collections.abc import Iterator
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Iterator
+from typing import Any
 from urllib.parse import urlparse
 from urllib.robotparser import RobotFileParser
 
@@ -47,7 +48,7 @@ class ItemColetado:
     identificador_externo: str | None = None
     http_headers: dict[str, str] = field(default_factory=dict)
     metadados: dict[str, Any] = field(default_factory=dict)
-    coletado_em: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    coletado_em: datetime = field(default_factory=lambda: datetime.now(UTC))
 
     @property
     def sha256(self) -> str:
@@ -128,24 +129,23 @@ class ColetorBase(abc.ABC):
     # -- execução ----------------------------------------------------------
 
     def executar(self, desde: datetime | None = None) -> ResultadoColeta:
-        r = ResultadoColeta(fonte_chave=self.chave,
-                            iniciada_em=datetime.now(timezone.utc))
+        r = ResultadoColeta(fonte_chave=self.chave, iniciada_em=datetime.now(UTC))
         try:
             for item in self.buscar(desde):
                 r.itens_vistos += 1
                 try:
                     self.preservar(item)
                     r.itens.append(item)
-                except Exception as exc:  # noqa: BLE001 — um item ruim não mata a coleta
+                except Exception as exc:
                     r.erros.append(f"preservar {item.url_origem}: {exc}")
                     log.exception("falha ao preservar %s", item.url_origem)
         except PermissionError as exc:
             r.bloqueios.append(str(exc))
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             r.erros.append(f"{type(exc).__name__}: {exc}")
             log.exception("coletor %s falhou", self.chave)
         finally:
-            r.encerrada_em = datetime.now(timezone.utc)
+            r.encerrada_em = datetime.now(UTC)
         return r
 
     # -- preservação -------------------------------------------------------
@@ -194,9 +194,7 @@ class ColetorBase(abc.ABC):
                 "coletor_versao": getattr(self, "versao", "0.1"),
                 "reobservado_em": [],
             }
-        manifesto.write_text(
-            json.dumps(dados, ensure_ascii=False, indent=2), encoding="utf-8"
-        )
+        manifesto.write_text(json.dumps(dados, ensure_ascii=False, indent=2), encoding="utf-8")
         return destino
 
     # -- rede --------------------------------------------------------------
@@ -214,7 +212,7 @@ class ColetorBase(abc.ABC):
             try:
                 resp = self._cliente.get(url, **kw)
                 if resp.status_code in (429, 503):
-                    espera = float(resp.headers.get("retry-after", 2 ** tentativa * 5))
+                    espera = float(resp.headers.get("retry-after", 2**tentativa * 5))
                     log.warning("%s pediu espera de %.0fs", url, espera)
                     time.sleep(min(espera, 120))
                     continue
@@ -223,7 +221,7 @@ class ColetorBase(abc.ABC):
             except httpx.HTTPError as exc:
                 ultimo = exc
                 if tentativa < self.tentativas - 1:
-                    time.sleep(2 ** tentativa)
+                    time.sleep(2**tentativa)
         raise RuntimeError(f"GET falhou após {self.tentativas} tentativas: {url}") from ultimo
 
     def _aguardar(self) -> None:
@@ -240,8 +238,11 @@ class ColetorBase(abc.ABC):
             rp.set_url(f"{raiz}/robots.txt")
             try:
                 rp.read()
-            except Exception:  # noqa: BLE001 — sem robots.txt legível, segue
-                rp.allow_all = True
+            except Exception:
+                # Sem robots.txt acessível, o padrão da web é permitir. Alimentar
+                # o parser com um arquivo vazio expressa isso sem depender de
+                # atributo interno da stdlib.
+                rp.parse([])
             self._robots[raiz] = rp
         return self._robots[raiz].can_fetch(UA, url)
 

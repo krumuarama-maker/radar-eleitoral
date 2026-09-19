@@ -39,9 +39,10 @@ from __future__ import annotations
 
 import json
 import logging
+from collections.abc import Iterator
 from dataclasses import dataclass
-from datetime import date, datetime, timedelta, timezone
-from typing import Any, Iterator
+from datetime import date, datetime, timedelta
+from typing import Any, ClassVar
 
 import httpx
 
@@ -84,12 +85,19 @@ class Modalidade:
 
     TODAS = tuple(range(1, 13))
 
-    NOMES = {
-        1: "Leilão Eletrônico", 2: "Diálogo Competitivo", 3: "Concurso",
-        4: "Concorrência Eletrônica", 5: "Concorrência Presencial",
-        6: "Pregão Eletrônico", 7: "Pregão Presencial", 8: "Dispensa",
-        9: "Inexigibilidade", 10: "Manifestação de Interesse",
-        11: "Pré-qualificação", 12: "Credenciamento",
+    NOMES: ClassVar[dict[int, str]] = {
+        1: "Leilão Eletrônico",
+        2: "Diálogo Competitivo",
+        3: "Concurso",
+        4: "Concorrência Eletrônica",
+        5: "Concorrência Presencial",
+        6: "Pregão Eletrônico",
+        7: "Pregão Presencial",
+        8: "Dispensa",
+        9: "Inexigibilidade",
+        10: "Manifestação de Interesse",
+        11: "Pré-qualificação",
+        12: "Credenciamento",
     }
 
 
@@ -184,11 +192,13 @@ class ColetorPNCP(ColetorBase):
         self.cnpjs = [so_digitos(c) for c in (cnpjs_orgaos or [])]
         self.modalidades = modalidades
         self.baixar_anexos = baixar_anexos
-        self._cliente.headers.update({
-            "User-Agent": UA_NAVEGADOR,
-            "Accept": "application/json",
-            "From": "radar-fiscalizacao-municipal (projeto de controle social)",
-        })
+        self._cliente.headers.update(
+            {
+                "User-Agent": UA_NAVEGADOR,
+                "Accept": "application/json",
+                "From": "radar-fiscalizacao-municipal (projeto de controle social)",
+            }
+        )
 
     # -- leitura ----------------------------------------------------------
 
@@ -219,7 +229,7 @@ class ColetorPNCP(ColetorBase):
                 dados = self._json(f"{BASE_CONSULTA}{caminho}", p)
             except httpx.HTTPStatusError as exc:
                 if exc.response.status_code == 204:
-                    return                      # sem conteúdo: fim normal
+                    return  # sem conteúdo: fim normal
                 if exc.response.status_code == 422:
                     log.error("422 em %s — janela de datas provavelmente > 365 dias", caminho)
                 raise
@@ -229,17 +239,17 @@ class ColetorPNCP(ColetorBase):
                 return
             yield from registros
 
-            total_paginas = (dados.get("totalPaginas") if isinstance(dados, dict) else None)
+            total_paginas = dados.get("totalPaginas") if isinstance(dados, dict) else None
             if total_paginas and pagina >= int(total_paginas):
                 return
             if len(registros) < tamanho:
-                return                          # última página parcial
+                return  # última página parcial
             pagina += 1
 
     # -- contrato do ColetorBase ------------------------------------------
 
     def buscar(self, desde: datetime | None = None) -> Iterator[ItemColetado]:
-        inicio = (desde.date() if desde else date.today() - timedelta(days=90))
+        inicio = desde.date() if desde else date.today() - timedelta(days=90)
         fim = date.today()
 
         for janela_ini, janela_fim in fatiar_janelas(inicio, fim):
@@ -250,7 +260,7 @@ class ColetorPNCP(ColetorBase):
         self, modalidade: int, inicio: date, fim: date
     ) -> Iterator[ItemColetado]:
         params: dict[str, Any] = {
-            "dataInicial": inicio.strftime("%Y%m%d"),   # sem hífen — a API exige
+            "dataInicial": inicio.strftime("%Y%m%d"),  # sem hífen — a API exige
             "dataFinal": fim.strftime("%Y%m%d"),
             "codigoModalidadeContratacao": modalidade,
         }
@@ -259,8 +269,14 @@ class ColetorPNCP(ColetorBase):
         # É justamente o que permite enxergar fracionamento entre entes.
         params["codigoMunicipioIbge"] = self.municipio
 
-        log.info("PNCP %s %s→%s modalidade %s (%s)",
-                 self.municipio, inicio, fim, modalidade, Modalidade.NOMES.get(modalidade))
+        log.info(
+            "PNCP %s %s→%s modalidade %s (%s)",
+            self.municipio,
+            inicio,
+            fim,
+            modalidade,
+            Modalidade.NOMES.get(modalidade),
+        )
 
         for bruto in self._paginar("/v1/contratacoes/publicacao", params, PAGINA_CONTRATACOES):
             c = Contratacao.de_json(bruto)
@@ -282,10 +298,13 @@ class ColetorPNCP(ColetorBase):
                     "cnpj_orgao": c.cnpj_orgao,
                     "sequencial": c.sequencial,
                     "valor_estimado": c.valor_estimado,
-                    "data_publicacao": c.data_publicacao.isoformat() if c.data_publicacao else None,
+                    "data_publicacao": c.data_publicacao.isoformat()
+                    if c.data_publicacao
+                    else None,
                     "data_encerramento_proposta": (
                         c.data_encerramento_proposta.isoformat()
-                        if c.data_encerramento_proposta else None
+                        if c.data_encerramento_proposta
+                        else None
                     ),
                     "situacao": c.situacao,
                 },
@@ -358,14 +377,18 @@ class ColetorPNCP(ColetorBase):
                 "codigoModalidadeContratacao": modalidade,
                 "codigoMunicipioIbge": self.municipio,
             }
-            for bruto in self._paginar("/v1/contratacoes/proposta", params, PAGINA_CONTRATACOES):
+            for bruto in self._paginar(
+                "/v1/contratacoes/proposta", params, PAGINA_CONTRATACOES
+            ):
                 achadas.append(Contratacao.de_json(bruto))
         return achadas
 
     def itens(self, c: Contratacao) -> list[dict[str, Any]]:
         """Itens de uma contratação — base para comparação de preço unitário."""
-        url = (f"{BASE_PNCP}/v1/orgaos/{so_digitos(c.cnpj_orgao)}"
-               f"/compras/{c.ano}/{c.sequencial}/itens")
+        url = (
+            f"{BASE_PNCP}/v1/orgaos/{so_digitos(c.cnpj_orgao)}"
+            f"/compras/{c.ano}/{c.sequencial}/itens"
+        )
         dados = self._json(url, {})
         return dados if isinstance(dados, list) else []
 
@@ -377,7 +400,9 @@ def so_digitos(s: str) -> str:
     return "".join(ch for ch in (s or "") if ch.isdigit())
 
 
-def fatiar_janelas(inicio: date, fim: date, dias: int = JANELA_MAX_DIAS) -> list[tuple[date, date]]:
+def fatiar_janelas(
+    inicio: date, fim: date, dias: int = JANELA_MAX_DIAS
+) -> list[tuple[date, date]]:
     """Quebra o período em janelas aceitas pela API (>365 dias devolve 422)."""
     janelas: list[tuple[date, date]] = []
     atual = inicio

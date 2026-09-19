@@ -24,9 +24,10 @@ from __future__ import annotations
 import abc
 import enum
 import time
+from collections.abc import Iterator, Sequence
 from dataclasses import dataclass, field
 from datetime import date
-from typing import Any, Protocol, Sequence
+from typing import Any, Protocol
 
 from radar.achados.modelo import Ficha, Gravidade, RegimeJuridico
 
@@ -135,9 +136,9 @@ class Contexto:
 class Regra(abc.ABC):
     """Uma verificação. Um arquivo, uma regra, um teste."""
 
-    codigo: str                 # 'R001'
+    codigo: str  # 'R001'
     nome: str
-    categoria: str              # licitacao|contrato|pagamento|engenharia|...
+    categoria: str  # licitacao|contrato|pagamento|engenharia|...
     descricao: str
     severidade_base: Gravidade = Gravidade.MEDIA
     versao: str = "1.0.0"
@@ -171,7 +172,7 @@ class Regra(abc.ABC):
                 )
             else:
                 r = self.avaliar(ctx)
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             r = Resultado(Desfecho.ERRO, motivo=f"{type(exc).__name__}: {exc}")
         r.duracao_ms = int((time.monotonic() - inicio) * 1000)
         return r
@@ -189,7 +190,7 @@ class RegistroRegras:
         self._regras[regra.codigo] = regra
         return regra
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[Regra]:
         return iter(sorted(self._regras.values(), key=lambda r: r.codigo))
 
     def __len__(self) -> int:
