@@ -85,7 +85,10 @@ class BaseNormativa(Protocol):
     """
 
     def obter(self, chave: str, em: date) -> Any: ...
-    def valor(self, chave: str, em: date) -> float | None: ...
+
+    #: `parametro` nomeia qual valor se quer quando o dispositivo carrega mais de
+    #: um (prazo de impugnação e prazo de resposta vivem no mesmo artigo).
+    def valor(self, chave: str, em: date, parametro: str | None = ...) -> Any: ...
 
 
 @dataclass(slots=True)
@@ -204,3 +207,41 @@ class RegistroRegras:
 
 
 REGISTRO = RegistroRegras()
+
+
+def ancorar(ctx: Contexto, papeis_preferidos: Sequence[str] = ()) -> list[Any]:
+    """Evidências ancoradas nos documentos preservados do processo.
+
+    Devolve lista vazia quando não há documento preservado — e, nesse caso, a
+    regra deve devolver SEM_DADOS, nunca um achado.
+
+    A tentação aqui é grande: inventar um identificador de versão qualquer para
+    satisfazer a validação da `Ficha` e seguir em frente. Isso transformaria a
+    regra R1 em teatro — o achado passaria pela validação sem ter, de fato,
+    documento nenhum atrás dele. Um apontamento assim é indefensável no momento
+    em que alguém pedir para ver a prova.
+    """
+    from radar.achados.modelo import Evidencia
+
+    ordem = list(papeis_preferidos) + [
+        d.get("papel") for d in ctx.documentos if d.get("papel") not in papeis_preferidos
+    ]
+    vistos: set[int] = set()
+    evidencias: list[Any] = []
+    for papel in ordem:
+        for d in ctx.documentos:
+            vid = d.get("documento_versao_id")
+            if d.get("papel") != papel or not vid or not d.get("sha256"):
+                continue
+            if vid in vistos:
+                continue
+            vistos.add(int(vid))
+            evidencias.append(
+                Evidencia(
+                    documento_versao_id=int(vid),
+                    sha256_versao=str(d["sha256"]),
+                    url_origem=str(d.get("url_origem") or ""),
+                    observacao=f"documento do processo, papel '{papel}'",
+                )
+            )
+    return evidencias

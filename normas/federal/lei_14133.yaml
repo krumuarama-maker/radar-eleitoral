@@ -96,3 +96,42 @@ dispositivos:
       ela DURANTE TODA A SUA DURAÇÃO. É esta regra que o motor consulta para
       fixar `regime_juridico` de cada processo. Sem ela, todo apontamento sobre
       contrato antigo nasce errado.
+
+  # ===================================================================
+  # LACUNA CRÍTICA — bloqueia a regra de fracionamento (FRAC-01/R003)
+  #
+  # O limite de dispensa por valor é ATUALIZADO PERIODICAMENTE por decreto.
+  # Cada atualização é uma redação nova, com sua própria vigência, e precisa
+  # virar uma entrada separada aqui. Aplicar o limite de hoje a uma compra de
+  # 2022 produz acusação de fracionamento que a Prefeitura derruba em uma linha.
+  #
+  # Enquanto `parametros` estiver vazio, a regra devolve SEM_DADOS em vez de
+  # chutar um número — que é exatamente o comportamento desejado.
+  # ===================================================================
+  - chave: lei_14133_art_75_limite_dispensa_obras
+    dispositivo: "Art. 75, I"
+    ementa: "Limite de dispensa por valor — obras e serviços de engenharia"
+    texto_literal: ""
+    vigencia_inicio: "2021-04-01"
+    vigencia_fim: null
+    conferido: {status: pendente, por: null, em: null}
+    parametros: {}
+    bloqueia:
+      - >-
+        Valor do limite NÃO levantado. A regra de fracionamento não pode rodar
+        sobre obras e serviços de engenharia até que ele seja conferido, com uma
+        entrada por atualização de decreto e suas respectivas vigências.
+
+  - chave: lei_14133_art_75_limite_dispensa_compras
+    dispositivo: "Art. 75, II"
+    ementa: "Limite de dispensa por valor — compras e demais serviços"
+    texto_literal: ""
+    vigencia_inicio: "2021-04-01"
+    vigencia_fim: null
+    conferido: {status: pendente, por: null, em: null}
+    parametros: {}
+    bloqueia:
+      - >-
+        Valor do limite NÃO levantado, e ele mudou por decreto mais de uma vez
+        desde 2021. Cada redação precisa de entrada própria com vigencia_inicio
+        e vigencia_fim. Sem isso, a regra de fracionamento devolve SEM_DADOS.

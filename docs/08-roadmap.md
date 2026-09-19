@@ -16,11 +16,14 @@
 | Base normativa com vigência | pronto, testado | `src/radar/analise/normas.py` |
 | Motor determinístico | pronto | `src/radar/analise/deterministico/base.py` |
 | Regra R001 (sancionado) | pronto, 10 testes | `r001_contratado_sancionado.py` |
-| Catálogo de verificações | 114 catalogadas, 1 implementada | `config/catalogo-verificacoes.yaml` |
+| Regra R002 (proposta única) | pronto, 8 testes | `r002_proposta_unica.py` |
+| Regra R003 (fracionamento entre órgãos) | pronto, 13 testes; **bloqueada pelo limite de dispensa não conferido** | `r003_fracionamento.py` |
+| Executor sobre o banco | pronto, 7 testes | `src/radar/analise/executor.py` |
+| Catálogo de verificações | 114 catalogadas, 4 implementadas | `config/catalogo-verificacoes.yaml` |
 | Skills e agentes | 3 skills, 4 agentes | `.claude/` |
 | CLI | funcional | `src/radar/cli.py` |
 | Extração de PDF | **não começou** | `src/radar/extracao/` |
-| Vinculação processo↔documento | **não começou** | — |
+| Vinculação processo↔documento | **não começou** — é o gargalo: sem ela as regras rodam, mas sobre nada | — |
 | Painel | **não começou** | `src/radar/painel/` |
 
 ---
@@ -56,11 +59,12 @@ Sem isto as regras não têm contexto para avaliar. É o gargalo atual.
 Prioridade 1 do catálogo, todas determinísticas puras. Ordem sugerida, da mais
 barata para a mais cara:
 
-- [ ] PRO-02 proposta única em modalidade competitiva *(o indicador mais robusto da literatura)*
+- [x] PRO-02 proposta única em modalidade competitiva
 - [ ] PRO-01 prazo abaixo do mínimo
 - [ ] PRO-07 contratação ausente do PNCP
 - [ ] ADI-01 aditivos acima do limite · ADI-04 aditivo muito próximo do contrato
-- [ ] FRAC-01 a 05 fracionamento *(rodar sobre TODOS os órgãos, não só a Prefeitura)*
+- [x] FRAC-01/04 fracionamento entre órgãos — **devolve SEM_DADOS até o limite
+      de dispensa ser conferido em `normas/`** (item B8 de `09-pendencias`)
 - [ ] PAG-01, 02, 04, 06 pagamentos — **o espaço vazio, e o diferencial**
 - [ ] PRO-03, PRO-04, PRO-06 julgamento
 - [ ] PRO-15 Mural do TCE-PR *(bloqueada até B6 de `09-pendencias`)*

@@ -475,10 +475,19 @@ verificacoes:
 - {id: PRO-01, cat: prazo, tipo: D, prio: 1, status: planejada,
    regra: "Prazo entre publicação e abertura abaixo do mínimo da modalidade",
    dados: [data_publicacao, data_abertura, modalidade], fonte: "Cardinal R003; Lei 14.133"}
-- {id: PRO-02, cat: competicao, tipo: D, prio: 1, status: planejada,
-   regra: "Proposta única recebida em modalidade competitiva",
-   dados: [n_licitantes, modalidade], fonte: "Cardinal R018",
-   nota: "O indicador mais usado e mais robusto da literatura. Implementar primeiro."}
+- id: PRO-02
+  cat: competicao
+  tipo: D
+  prio: 1
+  status: implementada
+  regra: Proposta única recebida em modalidade competitiva
+  dados: [n_licitantes, modalidade]
+  fonte: Cardinal R018
+  implementacao: src/radar/analise/deterministico/r002_proposta_unica.py
+  nota: >-
+    O indicador mais usado e mais robusto da literatura. Dispensa e
+    inexigibilidade ficam de fora: nelas a ausência de disputa é o pressuposto
+    legal, não o desvio.
 - {id: PRO-03, cat: julgamento, tipo: D, prio: 1, status: planejada,
    regra: "Menor proposta desclassificada quando o critério é só preço",
    dados: [propostas, status, criterio], fonte: "Cardinal R036"}
