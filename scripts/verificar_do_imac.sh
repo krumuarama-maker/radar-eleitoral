@@ -120,6 +120,15 @@ UA = ("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
 BASE = "https://pncp.gov.br/api/consulta"
 IBGE = "4105607"
 CNPJ_PREF = "75377200000167"
+
+#: Onde esta etapa grava seu veredito para o shell ler depois. Definido aqui, no
+#: topo, e não no meio do fluxo: uma versão anterior o declarava perto do uso e a
+#: linha se perdeu numa edição. O efeito seria invisível enquanto a rede estivesse
+#: bloqueada (o shell já assume "indeterminado" quando o arquivo falta) e apareceria
+#: só na PRIMEIRA execução bem-sucedida, recusando commitar justamente o resultado
+#: que interessava.
+VEREDITO = pathlib.Path("verificacao/.veredito")
+VEREDITO.parent.mkdir(parents=True, exist_ok=True)
 MODALIDADES = {6: "Pregão Eletrônico", 8: "Dispensa", 9: "Inexigibilidade"}
 
 fim = date.today()
