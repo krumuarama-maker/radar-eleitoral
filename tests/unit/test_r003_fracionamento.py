@@ -20,6 +20,7 @@ from radar.analise.deterministico.base import Contexto, Desfecho
 from radar.analise.deterministico.r003_fracionamento import (
     LIMIAR_SEMELHANCA,
     REGRA,
+    VAZIAS,
     semelhanca,
     termos,
 )
@@ -260,3 +261,101 @@ def test_palavras_de_praxe_nao_criam_semelhanca_falsa():
         )
         == 0.0
     )
+
+
+# --- casos reais de Cidade Gaúcha ------------------------------------------
+#
+# Estes pares vieram da primeira captura de dados reais do município, em
+# 27/09/2026. Eles expuseram um gerador de falso positivo que os testes
+# sintéticos não pegaram: "Registro de precos para prestacao de servicos de
+# fisioterapia" e "Registro de precos para aquisicao de pneus" compartilhavam
+# `registro` e `precos` e pontuavam 0,67 — acima do limiar — só pela fórmula do
+# instrumento. Oito das vinte contratações da janela eram registro de preços,
+# então a regra agruparia quase tudo com quase tudo, e acusaria a Administração
+# de fracionar despesa a partir de coincidência de papelada.
+
+
+PARES_REAIS = [
+    # (deve agrupar?, descrição, objeto A, objeto B)
+    (
+        True,
+        "pneus para frota leve e para frota média/pesada — mesmo objeto, "
+        "dividido por categoria de veículo",
+        "Registro de precos para aquisicao de pneus e camaras de ar destinados "
+        "a manutencao da frota de veiculos leves pertencentes ao Municipio",
+        "Registro de precos para aquisicao de pneus e camaras de ar novos "
+        "destinados a manutencao da frota de veiculos das categorias media e pesada",
+    ),
+    (
+        False,
+        "pneus e fisioterapia — só a fórmula do SRP em comum",
+        "Registro de precos para aquisicao de pneus e camaras de ar novos "
+        "destinados a manutencao da frota de veiculos",
+        "Registro de precos para contratacao de empresa especializada na "
+        "prestacao de servicos de fisioterapia",
+    ),
+    (
+        False,
+        "materiais de construção e fisioterapia",
+        "Registro de precos para aquisicao futura e parcelada de materiais de "
+        "construcao destinados as diversas Secretarias Municipais",
+        "Registro de precos para contratacao de empresa especializada na "
+        "prestacao de servicos de fisioterapia",
+    ),
+    (
+        False,
+        "materiais de construção e materiais de expediente — dividem 'materiais' "
+        "e são mercados inteiramente distintos",
+        "Registro de precos para aquisicao futura e parcelada de materiais de "
+        "construcao destinados as diversas Secretarias Municipais",
+        "Registro de precos para futura e eventual aquisicao de materiais de "
+        "expediente e papelaria destinados a suprir as necessidades das secretarias",
+    ),
+    (
+        False,
+        "troféus e fisioterapia",
+        "Registro de precos para futura e eventual contratacao de empresa para "
+        "fornecimento de trofeus a serem utilizados como premiacoes",
+        "Registro de precos para contratacao de empresa especializada na "
+        "prestacao de servicos de fisioterapia",
+    ),
+    (
+        False,
+        "enxoval hospitalar e gêneros alimentícios",
+        "Registro de precos para futura e eventual contratacao de empresa "
+        "especializada na prestacao de servicos de locacao de enxoval hospitalar",
+        "Registro de precos para futura e eventual aquisicao de generos "
+        "alimenticios hortifruti e produtos de acougue",
+    ),
+]
+
+
+@pytest.mark.parametrize(
+    "deve_agrupar,descricao,a,b",
+    PARES_REAIS,
+    ids=[p[1][:44] for p in PARES_REAIS],
+)
+def test_pares_reais_de_cidade_gaucha(deve_agrupar, descricao, a, b):
+    s = semelhanca(termos(a), termos(b))
+    agrupou = s >= LIMIAR_SEMELHANCA
+    assert agrupou is deve_agrupar, (
+        f"{descricao}\n  semelhança obtida: {s:.2f} (limiar {LIMIAR_SEMELHANCA})\n"
+        f"  termos A: {sorted(termos(a))}\n  termos B: {sorted(termos(b))}"
+    )
+
+
+def test_boilerplate_de_registro_de_precos_nao_gera_semelhanca():
+    """`registro` e `precos` não podem sobreviver ao filtro.
+
+    Eram 8 de 20 contratações da janela real. Deixá-los passar faz a regra de
+    fracionamento agrupar praticamente qualquer par de contratações do município.
+    """
+    for palavra in ("registro", "precos", "preco"):
+        assert palavra in VAZIAS, f"'{palavra}' precisa estar em VAZIAS"
+    assert termos("Registro de precos para futura e eventual aquisicao") == set()
+
+
+def test_um_termo_em_comum_nunca_basta_para_agrupar():
+    """Objetos com uma só palavra em comum são mercados distintos com nome parecido."""
+    assert semelhanca({"materiais", "construcao"}, {"materiais", "expediente"}) == 0.0
+    assert semelhanca({"pneus"}, {"pneus"}) == 1.0, "objetos idênticos são a exceção"

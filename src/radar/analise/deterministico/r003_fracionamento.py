@@ -99,6 +99,45 @@ VAZIAS = {
     "demanda",
     "uso",
     "visando",
+    # --- boilerplate descoberto no primeiro contato com dados reais -------
+    # "Registro de precos para prestacao de servicos de fisioterapia" e
+    # "Registro de precos para aquisicao de pneus" compartilhavam `registro` e
+    # `precos` e pontuavam 0,67 — acima do limiar — so pela formula do
+    # instrumento. Em Cidade Gaucha, 8 de 20 contratacoes da janela eram SRP,
+    # entao a regra de fracionamento agruparia quase tudo com quase tudo.
+    "registro",
+    "precos",
+    "preco",
+    "futuras",
+    "eventuais",
+    "parcelada",
+    "parcelado",
+    "novo",
+    "nova",
+    "novos",
+    "novas",
+    "suprir",
+    "atendimento",
+    "necessidade",
+    "destinada",
+    "destinadas",
+    "especializada",
+    "especializado",
+    "especializadas",
+    "especializados",
+    "pessoa",
+    "juridica",
+    "fisica",
+    "integral",
+    "execucao",
+    "utilizados",
+    "utilizadas",
+    "secretarias",
+    "departamentos",
+    "administracao",
+    "publicas",
+    "publico",
+    "publicos",
 }
 
 #: Fração de termos significativos em comum para considerar o mesmo objeto.
@@ -348,17 +387,37 @@ def termos(texto: str) -> set[str]:
     }
 
 
+#: Mínimo de termos em comum quando AMBOS os objetos têm descrição com dois ou
+#: mais termos significativos. "Materiais de construção" e "materiais de
+#: expediente" dividem apenas "materiais" e são mercados inteiramente distintos.
+#:
+#: A condição sobre o tamanho existe porque a trava, aplicada sem ela, rejeitava
+#: "medicamentos" × "medicamentos básicos" — que são o mesmo objeto. Quando o
+#: objeto mais curto tem um único termo, esse termo é toda a informação
+#: disponível, e exigir dois é exigir o impossível.
+MIN_TERMOS_COMUNS = 2
+
+
 def semelhanca(a: set[str], b: set[str]) -> float:
-    """Sobreposição de termos, medida sobre o conjunto menor.
+    """Sobreposição de termos significativos, medida sobre o conjunto menor.
 
     Escolha deliberada sobre Jaccard: um objeto descrito em três palavras e
-    outro descrito em trinta podem ser a mesma compra, e Jaccard os separaria
-    só pela diferença de verbosidade — comum entre órgãos que redigem de
-    formas diferentes.
+    outro em trinta podem ser a mesma compra, e Jaccard os separaria só pela
+    diferença de verbosidade — comum entre órgãos que redigem de formas
+    diferentes.
+
+    O preço dessa escolha é que conjuntos pequenos inflam o resultado, e é por
+    isso que existe `MIN_TERMOS_COMUNS`: com um único termo em comum, o quociente
+    dispara sem que haja qualquer parentesco real entre os objetos. Objetos
+    idênticos são a exceção, e passam.
     """
     if not a or not b:
         return 0.0
-    return len(a & b) / min(len(a), len(b))
+    comuns = a & b
+    menor = min(len(a), len(b))
+    if menor > 1 and len(comuns) < MIN_TERMOS_COMUNS and a != b:
+        return 0.0
+    return len(comuns) / menor
 
 
 def reais(v: float) -> str:
