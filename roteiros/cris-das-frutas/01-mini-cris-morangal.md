@@ -14,9 +14,9 @@ Circulação: orgânico (a versão impulsionada tem outra tela final)
 | 2 | 4 a 7s | Uma mão enorme desce no quadro, palma pra cima. Sentada na palma, do tamanho de um punhado de morango, a Cris. Braços cruzados. Cara fechada. Não olha pro dono da mão. | HOMEM, OFF: Achei uma candidata no meio do morangal. |
 | 3 | 7 a 11s | Ela continua de braço cruzado. Não se mexe. | HOMEM, OFF: Cris, por que você tá brava? |
 | 4 | 11 a 16s | Ela descruza os braços e aponta o dedo pra lente. | CRIS: Tô brava com voto espalhado. |
-| 5 | 16 a 26s | Ela se levanta na palma da mão e começa a andar de um lado pro outro, gesticulando. A mão acompanha, desequilibrada. | CRIS: Morama tem quantos voto? Se cada um votar num canto, Morama não elege ninguém. Fica sem ninguém pra brigar por nós lá na Assembleia. |
-| 6 | 26 a 33s | Ela para. Senta na beira da palma, perna balançando, fala mais baixo, mais perto da lente. | CRIS: Não é vaidade, é conta. Junta o voto de Morama num nome só e esse nome entra. Você me conhece. Eu tô aqui desde sempre. No morango, na feira, na estrada. |
-| 7 | 33 a 40s | Ela levanta, arruma a roupa, olha na lente. | CRIS: Então vota, meu amiguinho. Cris das Frutas, setenta, cento e vinte e três. Não te custa nada e é melhor pra Morama. |
+| 5 | 16 a 26s | Ela se levanta na palma da mão e começa a andar de um lado pro outro, gesticulando. A mão acompanha, desequilibrada. | CRIS: Umuarama e região tem quantos voto? Se cada um votar num canto, a gente não elege ninguém. Fica sem ninguém pra brigar por nós lá em Curitiba. |
+| 6 | 26 a 33s | Ela para. Senta na beira da palma, perna balançando, fala mais baixo, mais perto da lente. | CRIS: Não é vaidade, é conta. Junta o voto da região num nome só e esse nome entra. Você me conhece. Eu tô aqui desde sempre. No morango, na feira, na estrada. |
+| 7 | 33 a 40s | Ela levanta, arruma a roupa, olha na lente. | CRIS: Então vota, meu amiguinho. Cris das Frutas, setenta, um, dois, três. Não te custa nada e é melhor pra nossa região. |
 | 8 | 40 a 43s | Ela aponta pro chão. A mão a abaixa até o canteiro. Ela desce e sai andando entre os pés de morango, minúscula, apressada. | CRIS: Agora me põe no chão. Eu tenho campanha pra fazer. Foley de folha de morangueiro. |
 | 9 | 43 a 45s | Tela final sobre o plano largo do morangal. | Silêncio. |
 
@@ -27,7 +27,7 @@ CRIS DAS FRUTAS
 DEPUTADA ESTADUAL
 70123
 
-MORAMA VOTA JUNTO.
+UMUARAMA VOTA JUNTO.
 ```
 
 ---
@@ -78,8 +78,6 @@ Nada. A peça é toda nova.
 O QUE CONFIRMAR ANTES DE GRAVAR
 [CONFIRMAR: nome na urna exatamente como está no registro, "Cris das Frutas"]
 [CONFIRMAR: 70123 confere com o deferimento do registro]
-[CONFIRMAR: Morama é distrito, bairro ou região, e qual o nome que o povo usa falando]
-[CONFIRMAR: capital do estado, pra trocar "Assembleia" pela referência certa]
 [CONFIRMAR: o que ela já entregou, pra trocar "você me conhece" por um fato com nome]
 [CONFIRMAR: o morangal é de apoiador, com cessão gratuita e por escrito]
 [CONFIRMAR: autorização de uso de imagem do dono da mão]
@@ -116,7 +114,7 @@ Mesma gravação, três cenas.
 | Cena | Tempo | Visual | Áudio |
 |---|---|---|---|
 | 1 | 0 a 3s | A mão desce. Cris sentada, braço cruzado, cara fechada. | HOMEM, OFF: Cris, por que você tá brava? |
-| 2 | 3 a 11s | Ela aponta o dedo pra lente e levanta. | CRIS: Tô brava com voto espalhado. Se cada um votar num canto, Morama não elege ninguém. Junta num nome só e esse nome entra. |
-| 3 | 11 a 15s | Ela aponta pro chão, desce, sai andando entre os morangos. | CRIS: Cris das Frutas, setenta, cento e vinte e três. Vota, meu amiguinho. |
+| 2 | 3 a 11s | Ela aponta o dedo pra lente e levanta. | CRIS: Tô brava com voto espalhado. Se cada um votar num canto, a região não elege ninguém. Junta num nome só e esse nome entra. |
+| 3 | 11 a 15s | Ela aponta pro chão, desce, sai andando entre os morangos. | CRIS: Cris das Frutas, setenta, um, dois, três. Vota, meu amiguinho. |
 
 Tela final igual.
