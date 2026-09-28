@@ -26,9 +26,12 @@ Circulação: orgânico (a versão impulsionada tem outra tela final)
 CRIS DAS FRUTAS
 DEPUTADA ESTADUAL
 70123
+AVANTE
 
 UMUARAMA VOTA JUNTO.
 ```
+
+AVANTE vai em corpo pequeno, sem ser falado. É a legenda partidária que a lei manda pôr em toda propaganda (ver Conformidade).
 
 ---
 
@@ -78,6 +81,7 @@ Nada. A peça é toda nova.
 O QUE CONFIRMAR ANTES DE GRAVAR
 [CONFIRMAR: nome na urna exatamente como está no registro, "Cris das Frutas"]
 [CONFIRMAR: 70123 confere com o deferimento do registro]
+[CONFIRMAR: sigla AVANTE, ou federação, e arte oficial da legenda]
 [CONFIRMAR: o que ela já entregou, pra trocar "você me conhece" por um fato com nome]
 [CONFIRMAR: o morangal é de apoiador, com cessão gratuita e por escrito]
 [CONFIRMAR: autorização de uso de imagem do dono da mão]
@@ -92,6 +96,9 @@ IA: nenhuma, no caminho 1. No caminho 2, composição por sobreposição de
     imagem: exige aviso no início, marca d'água e audiodescrição.
 Voz e imagem: material real gravado. Voz dela sem tratamento de pitch.
     Sem síntese de voz ou de imagem da candidata, nem com autorização dela.
+Legenda partidária: AVANTE na tela final, pequeno, sem falar (Código
+    Eleitoral, art. 242; Res. 23.610, art. 10) [CONFIRMAR com o jurídico;
+    se houver federação, o nome dela].
 Identificação: orgânico, número na tela final. Se impulsionar, montar
     outra versão com CNPJ e a expressão Propaganda Eleitoral na peça.
 Trilha: biblioteca licenciada.
